@@ -88,3 +88,19 @@ export function buildEstimatedRoadPaint(edges, sampleHeight = (_, linear) => lin
   return {schema:ROAD_PAINT_SCHEMA,white,yellow,
     diagnostics:{eligibleEdges:eligible,quads,omitted,estimated:true,collisionReady:false,legalAccessVerified:false}};
 }
+
+
+/**
+ * Blender's bpy.data.materials.new() allocates a fresh material for each tile;
+ * names in later tile GLBs can be suffixed .001, .002, ... .
+ * Keep strict wall-vs-roof and official-vs-OSM matching.
+ */
+export function isProceduralFacadeMaterial(materialName, kind) {
+  const expected={
+    building:'lod1 walls / official shape',
+    osmBuilding:'osm fallback walls / estimated height',
+  }[kind];
+  if(!expected || typeof materialName!=='string') return false;
+  const canonical=materialName.trim().replace(/\s+/g,' ').replace(/\.\d{1,5}$/,'').toLowerCase();
+  return canonical===expected;
+}
