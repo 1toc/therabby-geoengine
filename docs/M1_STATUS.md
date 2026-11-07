@@ -206,3 +206,14 @@ If actual PLATEAU GML geometry fails/coordinate system is unknown, report and st
 ## 2026-11-01 測定PC向けローカル起動
 
 Windows標準PowerShellだけで内部確認パッケージを配信し、10分測定画面を開く起動ファイルを追加。Pythonのない測定PCでもフォルダー全体をコピーして使用できる。開発PCではパッケージ内のHTML/JS/JSON/GLBのGET、欠損404、親フォルダー参照403、Chromeの8秒自動測定とページエラー0を確認。全50件のユニットテスト成功。別PC・Edge・I-RIHA101の10分測定、公開用HTTPSは未テスト。
+
+
+## 2026-11-07 — 交通実験ラボ（GeoEngine本体とは分離）
+
+- `viewer/traffic-lab.html`、`viewer/traffic-lab.js`、`viewer/geoengine-traffic-graph.mjs` を追加。既存の `viewer/citywide-v1.html` と v0.1 操作系は変更していない。
+- 市全域の既存OSM道路タイルを入力とするEPSG:6677の2D接続グラフ、簡易道路面、車両・歩行者の視覚デモ。実データが手元にない場合は架空デモと明示する。
+- 通行権・車線・地形・衝突・信号・交通優先・運転評価は未実装。交通イベントはTDS側で扱う。
+- `tests/traffic_lab_probe.mjs` を追加し、Nodeテスト・構文チェック・既存fixture系PythonテストをGitHub Actionsで実行して成功。ローカルのフルPythonテスト、実データでのブラウザ動作、基準PCでの30FPS/10分は未実施。
+- 詳細は `docs/TRAFFIC_LAB.md`。
+
+**2026-11-07 3D交通統合追加試作**：既存 `traffic-lab.html` にPLATEAU LOD1建物・GSI DEM5A地形の小範囲GLB読込を追加。既存Citywide/TDS本体は変更せず、座標EPSG:6677と標高T.P.参照・OSM道路のDEM地表高サンプルによる暫定描画を実装。既知の標高がない道路上には3Dデモ車両を置かず、GLBがない場合は2D表示へ復帰。Node fixtureテストとCIは実装（成功確認）、実データブラウザ検証、基準PC10分/30FPS、道路と建物の整合性は未確認。詳細：`docs/TRAFFIC_LAB.md`。

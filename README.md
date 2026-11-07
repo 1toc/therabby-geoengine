@@ -185,3 +185,14 @@ Blenderのインストールパスは実機に合わせて変更してくださ�
 - OpenStreetMap：https://www.openstreetmap.org/copyright — © OpenStreetMap contributors / ODbL 1.0
 - PLATEAU：公開データに適用されるライセンスを個別確認し、福島市／Project PLATEAUを出典表記。
 - このリポジトリのコードのライセンスは `LICENSE`。**同梱・取得した他者の地理データにコードのMITライセンスは適用しない。**
+
+
+## 道路・交通実験ラボ（独立した試作）
+
+[交通実験画面](viewer/traffic-lab.html) を追加しました。既存の市全域ビューワーやTDSの運転操作には影響しません。
+
+プロジェクトルートで `python -m http.server 8767 --bind 127.0.0.1` を起動し、`http://127.0.0.1:8767/viewer/traffic-lab.html` を開いてください。初期画面は架空データです。福島駅周辺の実OSM道路を表示するには、ローカルの道路生成データ `data/derived/fukushima-citywide-roads-v1/` が必要です。実データはGitHub公開ソースに含まれません。
+
+詳細・制限・テスト方法は [TRAFFIC_LAB.md](docs/TRAFFIC_LAB.md) を参照。表示された車両・歩行者はデモ用で、車線・交通法規・実道路の走行可能性・衝突判定・臨床評価は再現していません。
+
+**2026-11-07 3D交通統合試作**：実OSM道路モードで「PLATEAU建物＋DEM5A地形を重ねる」を選ぶと、ローカル生成済みの公式LOD1 GLB・DEM5A GLBを読み込み、座標と地表高度を概略合わせて表示します。実道路のGLBは別途必要です。**建物・地形GLBも公開ソースに含まれません。** 画面のFPSは参考値で、走行可能性・車線・安全評価は未検証。詳細は [TRAFFIC_LAB.md](docs/TRAFFIC_LAB.md) を参照。

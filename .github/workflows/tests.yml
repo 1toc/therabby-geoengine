@@ -1,7 +1,7 @@
-name: M1 Python tests
+name: GeoEngine tests
 on: [push, pull_request]
 jobs:
-  unit:
+  python:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -9,3 +9,16 @@ jobs:
         with: {python-version: '3.12'}
       - name: Test conversion with synthetic fixtures (full dataset not included)
         run: python -m unittest discover -s tests -p test_geoengine.py -v
+  traffic-lab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Check JavaScript syntax
+        run: |
+          node --check viewer/geoengine-traffic-graph.mjs
+          node --check viewer/traffic-lab.js
+          node --check viewer/geoengine-traffic-city.mjs
+      - name: Test traffic graph with fictional fixtures
+        run: node --test tests/traffic_lab_probe.mjs tests/traffic_city_probe.mjs
