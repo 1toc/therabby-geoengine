@@ -27,10 +27,14 @@ a{color:#a9e5d3}button:focus-visible,input:focus-visible{outline:2px solid #c6f3
 <h2>シミュレーション</h2>
 <div class="row"><button id="pause">一時停止</button><button id="reset">移動をリセット</button></div>
 <label><input id="show-lines" type="checkbox" checked> OSM道路中心線・グラフ目安線（推定）</label>
+<h2>3D都市の統合試験</h2>
+<label><input id="city-3d" type="checkbox" checked disabled> PLATEAU建物＋DEM5A地形を重ねる（福島市OSMのみ）</label>
+<p id="city-status" class="small" role="status">架空デモ：実際の建物・地形は読み込みません。</p>
+<p class="small">生成済みの <code>fukushima-citywide-lod1-glb</code> と <code>fukushima-citywide-terrain-glb</code> が必要です。公式LOD1建物は写真のない簡易形状です。表示する道路と車両のY位置はDEM5A地表高の近似で、実路面・建物との衝突は未検証です。</p>
 <div id="status" role="status" aria-live="polite">読み込み中...</div>
 <div id="stats">—</div>
 <h2>操作</h2><p class="small">左ドラッグ：回転　右ドラッグ：移動　ホイール：拡大縮小。車は接続ノードに沿って移動し、歩行者は歩行者道データがある箇所のみ表示します。</p>
-<h2>安全・品質</h2><p class="small">道路幅はOSM分類からの推定です。交差点形状・車線・信号・優先関係・右左折規制・歩道・現実の交通流は未再現です。地形の高さは反映していません。仮想キャラクターに衝突判定や運転行動評価機能はありません。</p>
+<h2>安全・品質</h2><p class="small">道路幅はOSM分類からの推定です。交差点形状・車線・信号・優先関係・右左折規制・歩道・現実の交通流は未再現です。3D表示時も地表標高と道路面高は異なります。仮想キャラクターに衝突判定や運転行動評価機能はありません。</p>
 <p class="small">© OpenStreetMap contributors / ODbL 1.0（実データ使用時）。ソースの位置・ライセンス・品質は <a href="../docs/TRAFFIC_LAB.md">実験仕様</a>を参照してください。</p>
 </aside><main id="viewport">
 <div id="badge">GEOENGINE <span id="mode-label">架空デモ</span></div>
