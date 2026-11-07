@@ -4,13 +4,9 @@
  * Does not change map geometry, source attribution, road rules or collision data.
  */
 import * as THREE from 'three';
-import {buildEstimatedRoadPaint} from './geoengine-procedural-rules.mjs';
+import {buildEstimatedRoadPaint,isProceduralFacadeMaterial} from './geoengine-procedural-rules.mjs';
 
 const FACADE_VERSION = 'therabby-procedural-facade-v01';
-const FACADES = {
-  building: /^LOD1 walls \/ official shape$/i,
-  osmBuilding: /^OSM fallback walls \/ estimated height$/i,
-};
 
 export class ProceduralCity {
   constructor({scene, sunlight, hemisphere}) {
@@ -61,13 +57,21 @@ export class ProceduralCity {
     this.night.value=night;
   }
   installFacades(root, kind) {
-    const re=FACADES[kind];if(!re||!root)return 0;
+    if(!root||!['building','osmBuilding'].includes(kind))return 0;
     const used=new Set();let patched=0;
+    const stats={kind,materials:0,eligible:0,patched:0,unmatched:[],alreadyPatched:0};
     root.traverse(object=>{
       if(!object.isMesh)return;
       for(const mat of Array.isArray(object.material)?object.material:[object.material]) {
-        if(!mat?.isMeshStandardMaterial||!re.test(mat.name)||used.has(mat)||mat.userData.geoProceduralFacade)continue;
-        used.add(mat);mat.userData.geoProceduralFacade=true;
+        if(!mat||used.has(mat))continue;
+        used.add(mat);stats.materials++;
+        if(!mat.isMeshStandardMaterial||!isProceduralFacadeMaterial(mat.name,kind)){
+          if(stats.unmatched.length<8)stats.unmatched.push(String(mat.name??'(unnamed)'));
+          continue;
+        }
+        stats.eligible++;
+        if(mat.userData.geoProceduralFacade){stats.alreadyPatched++;continue;}
+        mat.userData.geoProceduralFacade=true;
         const original=mat.onBeforeCompile,oldKey=mat.customProgramCacheKey.bind(mat);
         const tint=new THREE.Color(kind==='building'?0xbab8ae:0x9f836b);
         mat.onBeforeCompile=(shader,renderer)=>{
@@ -136,6 +140,8 @@ export class ProceduralCity {
         patched++;
       }
     });
+    stats.patched=patched;
+    root.userData.geoProceduralFacadeStats=stats;
     return patched;
   }
   installRoadPaint(root) {
