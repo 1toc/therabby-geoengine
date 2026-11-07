@@ -5,6 +5,7 @@ import { projectFukushima } from './geoengine-citywide-api.js';
 import {buildStationRoadObject,buildStationGroundObject,stationGround,validateStationRoads} from './geoengine-station-roads-v02.js';
 import {stationStyleProfiles} from './station-style-profiles.js';
 import {ProceduralCity,createEstimatedMarkingMeshes} from './geoengine-procedural-city.js';
+import {buildStationRoadSplitObject} from './geoengine-station-road-split.js';
 import {findWalkCollision,findWalkInterior,walkSlide,insideWalkArea,walkElevationAllowed} from './geoengine-walk-collision.js';
 
 const $=id=>document.getElementById(id);
@@ -47,6 +48,8 @@ let desired=new Set(),inProgress=0,quality='light',viewMode='overview',pendingGr
   photoComparisonFrames=null,comparisonUrls=[],stationInspection=false;
 const proceduralCity=new ProceduralCity({scene,sunlight,hemisphere});
 const initialProcedural=new URLSearchParams(location.search).get('procedural')==='1';
+const initialRoadSplit=new URLSearchParams(location.search).get('road_split')==='1';
+let stationSplitMesh=null,stationSplitReady=false,stationSplitStatus='実験データを確認中';
 let proceduralEnabled=initialProcedural;
 proceduralCity.setQuality(quality);
 proceduralCity.setEnabled(proceduralEnabled);
@@ -330,9 +333,39 @@ async function fetchStationRoads(){
   stationRoadMesh.visible=$('roads').checked&&$('road-polygon').checked;
   scene.add(stationRoadMesh);
 }
+async function fetchStationRoadSplit(){
+  const checkbox=$('road-split');
+  const info=$('road-split-status');
+  checkbox.disabled=true;
+  try{
+    const url=new URL('../data/derived/fukushima-station-roads-v02/road_split_100m.json',import.meta.url);
+    const response=await fetch(url,{cache:'no-cache'});
+    if(!response.ok){
+      stationSplitStatus=response.status===404
+        ?'未生成：Pythonで100mの推定分離データを作成してください。'
+        :`分離データ HTTP ${response.status}。通常表示は維持します。`;
+      return;
+    }
+    if(!stationRoadData)throw new Error('PLATEAU駅前道路外形が未読込');
+    stationSplitMesh=buildStationRoadSplitObject(await response.json(),stationRoadData,origin);
+    scene.add(stationSplitMesh);
+    checkbox.disabled=false;stationSplitReady=true;
+    checkbox.checked=initialRoadSplit;
+    const stats=stationSplitMesh.userData.roadSplitStats;
+    stationSplitStatus=`100m実験：車道候補 ${stats.carriageway_area_m2.toFixed(1)}m²／歩道候補 ${stats.sidewalk_candidate_area_m2.toFixed(1)}m²／未判定 ${stats.unclassified_area_m2.toFixed(1)}m²（実測・走行判定ではありません）`;
+  }catch(error){
+    stationSplitStatus=`分離データを表示できません：${error.message}`;
+    console.warn('Optional station road split failed; normal view preserved',error);
+  }finally{
+    info.textContent=stationSplitStatus;
+    applyDebugDisplay();
+  }
+}
 function applyDebugDisplay(){
+  if(stationSplitMesh)stationSplitMesh.visible=stationSplitReady&&$('roads').checked&&$('road-split').checked;
   if(stationRoadMesh){
-    stationRoadMesh.visible=$('roads').checked&&$('road-polygon').checked;
+    stationRoadMesh.visible=$('roads').checked&&$('road-polygon').checked&&
+      !(stationSplitReady&&$('road-split').checked);
     stationRoadMesh.material.map=$('road-surface').checked?stationRoadMesh.material.userData.asphaltMap:null;
     stationRoadMesh.material.color.setHex($('road-surface').checked?0xb6babb:0x777e81);
     stationRoadMesh.material.needsUpdate=true;
@@ -840,6 +873,7 @@ function saveMeasurement(reason='stopped'){
     target_duration_s:measure.target_s,automatic:measure.automatic,completion_reason:reason,
     width:renderer.domElement.width,height:renderer.domElement.height,pixel_ratio:renderer.getPixelRatio(),
     quality,view_mode:viewMode,station_lod2_enabled:photoEnabled,
+    station_road_split_visual_enabled:stationSplitReady&&$('road-split').checked,
     procedural_city_enabled:proceduralEnabled,procedural_visual_hour:proceduralEnabled?proceduralCity.hour:null,
     station_lod2_buildings_loaded:[...active].reduce((sum,[key,item])=>sum+(key.startsWith('photo-')?item.photoBuildings:0),0),
     user_agent:navigator.userAgent,gpu:gpuInfo(),
@@ -858,7 +892,8 @@ function saveMeasurement(reason='stopped'){
     notes:'描画バッファは1280×720固定。GPU文字列だけでI-RIHA101本体を認証できないため、ホスト名は別途確認する。背面化はhidden_intervalsに記録。'};
   const validity={ten_minutes:data.target_duration_s===600&&duration>=600,
     completed:data.completion_reason==='completed',resolution:data.baseline_resolution_match&&data.pixel_ratio===1,
-    light_quality:data.quality==='light',procedural_visuals_off:!proceduralEnabled,foreground:data.hidden_intervals===0,
+    light_quality:data.quality==='light',procedural_visuals_off:!proceduralEnabled,
+    station_road_split_off:!data.station_road_split_visual_enabled,foreground:data.hidden_intervals===0,
     unthrottled:!data.suspected_browser_throttling,
     road_tour:Number.isFinite(data.road_tour_distance_m)&&data.road_tour_distance_m>0&&data.road_tour_tile_crossings>0,
     no_tile_errors:data.load_failures_delta===0};
@@ -963,6 +998,8 @@ async function initialize(){
     await Promise.all(['building','osmBuilding','far','terrain','road'].map(fetchManifest));
     try{await fetchStationRoads();}
     catch(error){console.warn('駅東口のPLATEAU道路外形を読み込めません:',error);}
+    // Optional visual pilot. Missing derived data never blocks the citywide viewer.
+    await fetchStationRoadSplit();
     if(initialStationPhoto||photoPilotMode||photoStreamMode){
       try{await fetchPhotoOverlay();$('station-photo').checked=true;photoEnabled=true;if(stationGroundMesh)stationGroundMesh.visible=true;}
       catch(error){console.warn(error);$('station-photo').parentElement.title=error.message;}
@@ -1036,6 +1073,7 @@ async function initialize(){
       photoEnabled=$('station-photo').checked;if(stationGroundMesh)stationGroundMesh.visible=photoEnabled;schedule(true);
     };
     $('roads').onchange=()=>{applyDebugDisplay();schedule(true);};
+    $('road-split').onchange=applyDebugDisplay;
     for(const id of ['building-texture','building-lod','road-polygon','road-surface','road-centerline','road-height','road-guides'])
       $(id).onchange=applyDebugDisplay;
     $('measure').onclick=()=>{if(measure)saveMeasurement('stopped');else beginMeasurement(false);};
