@@ -66,3 +66,42 @@ The full Python suite requires the local generated datasets, original assets and
 1. Test browser output with generated Fukushima road tiles and review edge continuity, junction errors and missing footways.
 2. Benchmark 1280×720 / 10 minutes on the i5-14500T + Intel UHD + RAM 8 GB reference PC. FPS shown in UI is indicative only.
 3. Add documented junction rules and Japanese left-side lane geometry *only after* source confidence and geometry review. Traffic events and clinical logs belong in TDS, not the GeoEngine base package.
+
+## 2026-11-07: Fukushima LOD1 + DEM5A integration (experimental)
+
+The independent existing URL is unchanged: `viewer/traffic-lab.html`. In **福島駅付近の実OSM道路** mode,
+the new **PLATEAU建物＋DEM5A地形を重ねる** checkbox is enabled and defaults to checked.
+The synthetic fixture never loads actual urban GLBs.
+
+### Asset prerequisites (prebuilt local derived files)
+
+```text
+data/derived/fukushima-citywide-roads-v1/tileset.json
+data/derived/fukushima-citywide-roads-v1/tiles/*.json
+data/derived/fukushima-citywide-lod1-glb/tileset.json
+data/derived/fukushima-citywide-lod1-glb/*.glb
+data/derived/fukushima-citywide-terrain-glb/tileset.json
+data/derived/fukushima-citywide-terrain-glb/*.glb
+```
+
+The **last four entries are not part of the public source checkout**. They must exist in the already generated `E:\GeoEngine\data\derived\...` directories. No new network data acquisition is performed in the browser.
+
+- `geoengine-traffic-city.mjs` selects a bounded set of nearby GLBs (up to nine per layer, radius 360m), validates EPSG:6677 and T.P. and loads tiles sequentially to reduce simultaneous allocations.
+- GLB positioning matches `citywide-v1.js`: `(tile_origin_east-center_east, -reference_TP, center_north-tile_origin_north)`; the reference T.P. altitude comes from the closest DEM-sampled OSM node within 250m. If no reference height is available, the renderer stays 2D rather than inventing an elevation.
+- In 3D mode road-ribbon endpoints and characters use linearly interpolated **DEM5A ground samples**. Any segment lacking both endpoint samples is **not drawn as a 3D road ribbon or used as a sample agent path**. This does not imply that the road is missing in real life.
+- Roads remain OSM centerlines with **estimated width** and do not supply legal lanes. No collisions, lane markings, traffic signal logic, realistic left-side driving or clinical judgments are implemented.
+- The terrain layer uses published GSI DEM5A meshes and remains missing wherever input data has no-data. The near-GLB selection uses a conservative 1000m bounding approximation for DEM tiles because the manifest does not store per-tile geographic bounds; the GLB placement itself uses the exact projected tile origin.
+- If either PLATEAU building or DEM5A layer fails entirely, 3D is not activated and the existing 2D traffic view is retained. Partial tile failures are reported in the status, not silently filled with fictional blocks.
+- The GLB geometry is **official LOD1 with no official facade photographs**. Official LOD2 photo-overlay replacement is not included here. No modification to the existing `citywide-v1.html` or its main `.js` has been made.
+- `viewer/geoengine-traffic-city.mjs` keeps tile-selection, height-reference and GLB load/placement helpers separately testable without a WebGL context.
+- The 8GB / Intel UHD 30FPS acceptance remains open; this experimental UI shows observed draw calls and a non-standard FPS estimate only.
+
+### Extended test
+
+```powershell
+node --test tests/traffic_lab_probe.mjs tests/traffic_city_probe.mjs
+node --check viewer/traffic-lab.js
+node --check viewer/geoengine-traffic-city.mjs
+```
+
+Unit and GitHub Actions test success verifies the **code paths against synthetic fixtures**, not a local browser's real GLB loading, map alignment, GPU frame rate or patient safety. Inspect a real-data browser screenshot and the status readout before starting any further integration.
