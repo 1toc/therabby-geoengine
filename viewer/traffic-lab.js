@@ -178,7 +178,9 @@ function displayDemo() {
   const next=buildTrafficGraph(makeSyntheticTrafficTiles(),55500,194500,280);
   renderGraph(next,'demo');
 }
-const provider=new CitywideRoadProvider();
+// Fetch must be invoked as a function, not as an unbound Window method through provider.fetcher.
+// The wrapper keeps browser-native fetch's required global receiver while preserving API defaults.
+const provider=new CitywideRoadProvider(undefined, (...args)=>globalThis.fetch(...args));
 async function displayReal() {
   if(loading)return;
   loading=true;$('use-real').disabled=true;
