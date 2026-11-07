@@ -42,14 +42,26 @@ function clearWorld() {
   }
   guideLines=null;agents.length=0;
 }
-function roadMesh(segment) {
-  const dx=segment.b[0]-segment.a[0],dz=segment.b[1]-segment.a[1];
-  const width=segment.kind==='footpath'?Math.min(3,segment.width_m):segment.width_m;
-  const m=new THREE.Mesh(new THREE.BoxGeometry(width,.035,segment.length),
-    segment.kind==='footpath'?materialFoot:segment.kind==='road'?materialRoad:materialOther);
-  m.position.set((segment.a[0]+segment.b[0])/2,.04,(segment.a[1]+segment.b[1])/2);
-  m.rotation.y=Math.atan2(dx,dz);
-  return m;
+// Batch all road ribbons of each type into one mesh (three draw calls, not one per edge).
+function roadBatch(segments,kind,material) {
+  const positions=[],normals=[];
+  const triangle=(p,q,r)=>{
+    for(const [x,z] of [p,q,r]){positions.push(x,.04,z);normals.push(0,1,0);}
+  };
+  for(const s of segments) {
+    if(s.kind!==kind)continue;
+    const dx=s.b[0]-s.a[0],dz=s.b[1]-s.a[1];
+    const half=(kind==='footpath'?Math.min(3,s.width_m):s.width_m)/2;
+    const nx=-dz/s.length*half,nz=dx/s.length*half;
+    const a=[s.a[0]+nx,s.a[1]+nz],b=[s.b[0]+nx,s.b[1]+nz];
+    const c=[s.a[0]-nx,s.a[1]-nz],d=[s.b[0]-nx,s.b[1]-nz];
+    triangle(a,b,c);triangle(b,d,c);
+  }
+  if(!positions.length)return null;
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geometry.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));
+  return new THREE.Mesh(geometry,material);
 }
 function actorMesh(mode,index) {
   if(mode==='vehicle') {
@@ -77,7 +89,7 @@ function chooseNextArc(mode,atNode,previousEdge,seed) {
   return candidates[seed%candidates.length];
 }
 function createAgents() {
-  for(const actor of agents)root.remove(actor.mesh);
+  for(const actor of agents){root.remove(actor.mesh);actor.mesh.traverse(disposeMesh);}
   agents.length=0;
   for(const [mode,max,speed] of [['vehicle',4,8],['pedestrian',3,1.35]]) {
     const pool=[...graph.adjacency[mode].values()].flat().filter(a=>
@@ -122,8 +134,10 @@ function advance(dt){
 function renderGraph(next,mode){
   graph=next;currentMode=mode;clearWorld();
   const positions=[];
-  for(const segment of graph.segments){
-    root.add(roadMesh(segment));
+  for(const [kind,material] of [['road',materialRoad],['footpath',materialFoot],['other',materialOther]]) {
+    const batch=roadBatch(graph.segments,kind,material);if(batch)root.add(batch);
+  }
+  for(const segment of graph.segments) {
     positions.push(segment.a[0],.105,segment.a[1],segment.b[0],.105,segment.b[1]);
   }
   const geometry=new THREE.BufferGeometry();
