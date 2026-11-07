@@ -47,7 +47,7 @@ for(const z of [-105,0,105])asphalt(0,z,12,175,Math.PI/2);
 let seed=20261107;
 const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
 const facades=new THREE.Group(),wall=mat(0x8b9a95),roof=mat(0x687b7e);
-wall.name='LOD1 walls / official shape';roof.name='LOD1 roofs / official shape';
+wall.name='LOD1 walls / official shape.037';roof.name='LOD1 roofs / official shape';
 for(let row=-6;row<=6;row++){
   for(const side of [-1,1]){
     if(row===0)continue;
@@ -67,7 +67,9 @@ for(let row=-6;row<=6;row++){
   }
 }
 scene.add(facades);
-procedural.installFacades(facades,'building');
+if(procedural.installFacades(facades,'building')!==1) {
+  throw new Error('Synthetic Blender-suffixed wall material was not recognized');
+}
 
 const roads=new THREE.Group();scene.add(roads);
 const fakeEdges=[{points:[[0,-177],[0,177]],width_m:13,highway:'primary',
