@@ -902,6 +902,26 @@ function updateStatus(now){
     photo.some(([key])=>key.startsWith('photo-medium:'))?'medium':'low';
   const bytes=manifests.photo?.quality_variants?.[variant]?.rgba8_mip_estimate_bytes;
   $('texture-memory').textContent=photo.length&&bytes?`全域上限 約${(bytes/1048576).toFixed(0)} MiB`:'—';
+  const procText=$('procedural-diagnostics');
+  if(!proceduralEnabled)procText.textContent='生成外壁：OFF（元の建物表示）';
+  else {
+    const roots=[
+      ...buildings.map(([,item])=>item.root),
+      ...osmBuildings.map(([,item])=>item.root),
+      ...photo.map(([,item])=>item.root.children[0]),
+    ];
+    const diag={tiles:0,materials:0,eligible:0,unmatched:[]};
+    for(const root of roots){
+      const stats=root?.userData?.geoProceduralFacadeStats;
+      if(!stats)continue;
+      diag.tiles++;diag.materials+=stats.materials;diag.eligible+=stats.eligible;
+      if(diag.unmatched.length<3)diag.unmatched.push(...stats.unmatched.slice(0,3-diag.unmatched.length));
+    }
+    procText.textContent=diag.tiles
+      ?`生成外壁：適用 ${diag.eligible}材質 / 検査 ${diag.materials}材質（${diag.tiles}タイル）。`+
+        (diag.eligible?'壁から20〜50mで窓を確認してください。':`一致なし。検出名：${diag.unmatched.join(' / ')||'不明'}`)
+      :'生成外壁：LOD1建物を読み込み中です（遠景LODには窓を生成しません）。';
+  }
   if(!$('status').classList.contains('error')){
     const missing=roads.reduce((sum,[,item])=>sum+item.unknown+item.structures,0);
     setStatus(`読込中 ${pending.size}件 / 表示 ${active.size}タイル / 累積読込 ${loadSuccess}件\n`+
