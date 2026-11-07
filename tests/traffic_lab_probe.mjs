@@ -77,3 +77,20 @@ test('shared OSM node IDs link arcs from different tiles',()=>{
   const g=buildTrafficGraph(tiles,55500,194500,300);
   assert.ok(g.adjacency.vehicle.get('demo:200:0').some(a=>a.edgeId==='joined'));
 });
+
+test('3D ground height follows edge direction and never invents missing DEM',()=>{
+  const tiles=demo();
+  const sample=tiles[0].edges[0];
+  sample.ground_height_from_tp_m=65;
+  sample.ground_height_to_tp_m=70;
+  sample.oneway_osm_tag='-1';
+  const forward=getArcs(buildTrafficGraph(tiles,55500,194500),'vehicle').filter(a=>a.edgeId===sample.id);
+  assert.equal(forward.length,1);
+  assert.equal(forward[0].groundFromTp,70);
+  assert.equal(forward[0].groundToTp,65);
+  const other=tiles[0].edges[1];
+  other.ground_height_from_tp_m=null;
+  other.ground_height_to_tp_m=null;
+  const noHeight=getArcs(buildTrafficGraph(tiles,55500,194500),'vehicle').filter(a=>a.edgeId===other.id);
+  assert.ok(noHeight.every(a=>a.groundFromTp===null&&a.groundToTp===null));
+});
