@@ -69,6 +69,9 @@
         <label class="switch"><input id="building-lod" type="checkbox">建物LOD情報</label>
         <label class="switch"><input id="roads" type="checkbox" checked>道路面を表示</label>
         <label class="switch"><input id="road-polygon" type="checkbox" checked>駅前PLATEAU道路外形</label>
+        <label class="switch"><input id="road-split" type="checkbox" disabled>駅東口100m：推定車道・歩道・縁石（実験）</label>
+        <p id="road-split-status" class="fine" role="status">100m道路分離データを確認中です。</p>
+        <p class="fine">PLATEAU道路外形とOSM中心線からの<b>視覚的な仮説</b>です。歩道・縁石位置や高低差は実測ではなく、車椅子通行の可否・衝突判定・運転評価には使用できません。未判定領域も残します。</p>
         <label class="switch"><input id="road-surface" type="checkbox" checked>アスファルト表面の質感</label>
         <label class="switch"><input id="road-guides" type="checkbox" checked>道路の目安線（推定）</label>
         <p class="fine">目安線はOSM中心線と推定幅から描いた案内用の線です。実際の白線・車線境界ではありません。明るい道路面はOSMの歩行者用道路を示します。駅前の灰色の地表は仮の色で、実際の舗装や歩道の位置を示すものではありません。</p>
