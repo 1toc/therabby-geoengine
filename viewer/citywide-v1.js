@@ -805,7 +805,7 @@ function resizeRender(){
 function beginMeasurement(automatic=false){
   if(measure)return true;
   stopWalking();stationPhotoSharpUniform.value=0;
-  quality='light';$('quality').value='light';renderer.setPixelRatio(1);
+  quality='light';$('quality').value='light';renderer.setPixelRatio(1);proceduralCity.setQuality('light');
   $('photo-detail').value='auto';
   $('roads').checked=true;
   if(!tour&&!startTour())return false;
