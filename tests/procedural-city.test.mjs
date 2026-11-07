@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ROAD_PAINT_SCHEMA,eligiblePaintEdge,estimateLineStyle,buildEstimatedRoadPaint}
+import {ROAD_PAINT_SCHEMA,eligiblePaintEdge,estimateLineStyle,buildEstimatedRoadPaint,isProceduralFacadeMaterial}
   from '../viewer/geoengine-procedural-rules.mjs';
 
 const road=(overrides={})=>({
@@ -82,4 +82,22 @@ test('bad parameters fail clearly',()=>{
   assert.throws(()=>buildEstimatedRoadPaint(null),/edges/);
   assert.throws(()=>buildEstimatedRoadPaint([road()],null),/sampleHeight/);
   assert.throws(()=>buildEstimatedRoadPaint([road()],undefined,{maxQuads:-1}),/maxQuads/);
+});
+
+test('Blender per-tile material suffixes remain eligible for procedural facades',()=>{
+  for(const name of ['LOD1 walls / official shape','LOD1 walls / official shape.001',
+                     'LOD1 walls / official shape.187', '  LOD1   walls / official shape.045  ']){
+    assert.equal(isProceduralFacadeMaterial(name,'building'),true,name);
+  }
+  assert.equal(isProceduralFacadeMaterial('OSM fallback walls / estimated height.017','osmBuilding'),true);
+});
+test('roof, incompatible origin and unrelated materials remain excluded',()=>{
+  for(const name of ['LOD1 roofs / official shape.001','OSM fallback roofs / estimated height',
+                     'Random texture','PLATEAU Photo']) {
+    assert.equal(isProceduralFacadeMaterial(name,'building'),false,name);
+    assert.equal(isProceduralFacadeMaterial(name,'osmBuilding'),false,name);
+  }
+  assert.equal(isProceduralFacadeMaterial('LOD1 walls / official shape.001','osmBuilding'),false);
+  assert.equal(isProceduralFacadeMaterial(null,'building'),false);
+  assert.equal(isProceduralFacadeMaterial('LOD1 walls / official shape','other'),false);
 });
