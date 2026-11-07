@@ -19,5 +19,6 @@ jobs:
         run: |
           node --check viewer/geoengine-traffic-graph.mjs
           node --check viewer/traffic-lab.js
+          node --check viewer/geoengine-traffic-city.mjs
       - name: Test traffic graph with fictional fixtures
-        run: node --test tests/traffic_lab_probe.mjs
+        run: node --test tests/traffic_lab_probe.mjs tests/traffic_city_probe.mjs
