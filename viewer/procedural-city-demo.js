@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {ProceduralCity,createEstimatedMarkingMeshes} from './geoengine-procedural-city.js';
+import {buildStationRoadSplitObject} from './geoengine-station-road-split.js';
 
 const viewport=document.getElementById('viewport');
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'low-power'});
@@ -71,6 +72,32 @@ if(procedural.installFacades(facades,'building')!==1) {
   throw new Error('Synthetic Blender-suffixed wall material was not recognized');
 }
 
+const fakeStation={
+  center_east_m:0,center_north_m:0,
+  terrain:{
+    bounds_local_xz_m:[-150,-150,150,150],step_m:5,height_origin_tp_m:0,
+    heights_relative_m:Array.from({length:61},()=>Array(61).fill(0)),
+    vertical_datum:'T.P. (Tokyo Peil)',
+  }
+};
+const fakeSplit={
+  schema:'therabby.geoengine.station-road-split.visual.v0.1',
+  status:'experimental',projected_crs:'EPSG:6677',
+  center_east_m:0,center_north_m:0,bounds_local_xz_m:[-50,-50,50,50],
+  source:{plateau:'SYNTHETIC PLATEAU STYLE',osm:'SYNTHETIC OSM STYLE',gsi:'SYNTHETIC GSI STYLE'},
+  layers:{
+    carriageway_candidate:[{outer:[[-6,-50],[6,-50],[6,50],[-6,50]],holes:[]}],
+    sidewalk_candidate:[
+      {outer:[[-10,-50],[-6,-50],[-6,50],[-10,50]],holes:[]},
+      {outer:[[6,-50],[10,-50],[10,50],[6,50]],holes:[]}
+    ],
+    unclassified_corridor:[],
+  },
+  curb_candidates:[[[-6,-50],[-6,50]],[[6,-50],[6,50]]],
+  statistics:{partition_error_m2:0,overlap_error_m2:0}
+};
+const splitMesh=buildStationRoadSplitObject(fakeSplit,fakeStation,{east:0,north:0});
+scene.add(splitMesh);
 const roads=new THREE.Group();scene.add(roads);
 const fakeEdges=[{points:[[0,-177],[0,177]],width_m:13,highway:'primary',
   oneway_osm_tag:'no',ground_height_from_tp_m:0,ground_height_to_tp_m:0}];
@@ -115,13 +142,15 @@ for(let i=0;i<10;i++){
   scene.add(car);traffic.push({car,offset:i*40,dir:i%2===0?1:-1,x:i%2===0?-3.3:3.3});
 }
 const clock=document.getElementById('clock'),hour=document.getElementById('hour'),mode=document.getElementById('mode'),cars=document.getElementById('cars');
+const splitToggle=document.getElementById('synthetic-split');
 function apply(){
   procedural.setEnabled(mode.checked);
   procedural.toggleRoadPaint(roads);
+  splitMesh.visible=splitToggle.checked;
   procedural.setTime(Number(hour.value));
   clock.textContent=`${String(Math.floor(Number(hour.value))).padStart(2,'0')}:${Number(hour.value)%1?'30':'00'}`;
 }
-mode.onchange=apply;hour.oninput=apply;
+mode.onchange=apply;hour.oninput=apply;splitToggle.onchange=apply;
 document.getElementById('reset').onclick=()=>{camera.position.set(68,59,125);controls.target.set(0,7,0);controls.update();};
 const resize=new ResizeObserver(()=>{
   const w=viewport.clientWidth,h=viewport.clientHeight;
