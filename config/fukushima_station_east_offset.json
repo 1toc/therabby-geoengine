@@ -1,0 +1,11 @@
+{
+  "id": "fukushima-station-east-offset-160m",
+  "name": "福島駅東口南東側（再生成検証・160m四方）",
+  "center_lat": 37.75415,
+  "center_lon": 140.46235,
+  "half_size_m": 80,
+  "plateau_city_code": "07201",
+  "plateau_year": 2025,
+  "city": "Fukushima, Japan",
+  "intended_use": "development regeneration check, not clinical driving assessment"
+}

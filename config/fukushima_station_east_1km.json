@@ -1,0 +1,12 @@
+{
+  "id": "fukushima-station-east-1km",
+  "name": "福島駅東口周辺（連続1km四方試験範囲）",
+  "center_lat": 37.75445,
+  "center_lon": 140.46190,
+  "half_size_m": 500,
+  "projection": "JGD2011_JPRCS_IX_GRS80",
+  "plateau_city_code": "07201",
+  "plateau_year": 2025,
+  "city": "Fukushima, Japan",
+  "intended_use": "development preview, not clinical driving assessment"
+}

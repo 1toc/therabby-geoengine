@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Therabby GeoEngine | Blender City Preview</title>
+  <style>
+    :root { font: 14px system-ui, "Noto Sans JP", sans-serif; color: #e9f3f6; background: #9fb3bb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    #viewport { position: fixed; inset: 0; }
+    canvas { display: block; }
+    header { position: absolute; z-index: 2; top: 16px; left: 16px; width: min(350px, calc(100vw - 32px)); padding: 17px 18px; border-radius: 14px; background: #172833e8; box-shadow: 0 12px 36px #15212b55; }
+    h1 { margin: 0; font-size: 17px; letter-spacing: .02em; }
+    .eyebrow { margin: 0 0 5px; color: #93d3ca; font-size: 11px; font-weight: 700; letter-spacing: .14em; }
+    .sub { margin: 6px 0 13px; color: #c9dce2; line-height: 1.5; }
+    .tag { display: inline-block; padding: 4px 8px; margin: 0 3px 9px 0; border: 1px solid #6d9799; border-radius: 5px; color: #b9ece4; font-size: 11px; }
+    #status, #stats { white-space: pre-line; line-height: 1.5; font-size: 12px; }
+    #status { color: #e6dba9; }
+    #stats { color: #dce8ec; }
+    button { border: 1px solid #69989b; border-radius: 7px; padding: 7px 11px; color: white; background: #255c63; font: inherit; cursor: pointer; }
+    button:hover { background: #33747c; }
+    .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+    .help { color: #a7c2c9; font-size: 11px; }
+    footer { position: absolute; z-index: 2; bottom: 11px; left: 16px; right: 16px; border-radius: 8px; padding: 8px 11px; background: #172833cc; color: #e4eff1; font-size: 11px; }
+    #wall-compare { position: absolute; z-index: 2; top: 16px; right: 16px; width: min(520px, calc(100vw - 32px)); border-radius: 12px; background: #172833ed; padding: 12px; box-shadow: 0 12px 36px #15212b55; }
+    #wall-compare[hidden] { display: none; }
+    #wall-compare p { margin: 0 0 8px; line-height: 1.4; }
+    .compare-images { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .compare-images img { display: block; width: 100%; height: 260px; object-fit: contain; background: #40464b; }
+    .compare-images figcaption { font-size: 11px; margin-top: 3px; }
+    .compare-images figure { margin: 0; }
+    @media (max-width: 500px) {
+      header { top: 8px; left: 8px; width: calc(100vw - 16px); padding: 10px; }
+      h1 { font-size: 14px; }
+      .eyebrow, .sub, .tag, #stats, .controls .help, #mode-note { display: none; }
+      #status { margin-top: 5px; font-size: 11px; }
+      .controls { gap: 5px; margin-top: 7px; }
+      button { padding: 5px 7px; font-size: 11px; }
+      #model-note { display: block; margin-top: 5px; font-size: 10px; line-height: 1.3; }
+      footer { bottom: 5px; left: 8px; right: 8px; font-size: 9px; padding: 5px 7px; }
+      #wall-compare { top: auto; bottom: 45px; right: 8px; width: calc(100vw - 16px); }
+      .compare-images img { height: 150px; }
+    }
+  </style>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/"}}</script>
+</head>
+<body>
+  <main id="viewport"></main>
+  <header>
+    <p class="eyebrow">BLENDER OUTPUT / FUKUSHIMA 2025</p>
+    <h1>福島駅東口 3Dシティ</h1>
+    <p class="sub" id="summary">PLATEAUの建物写真と航空写真をBlenderで組み立てたGLBです。</p>
+    <span class="tag">LOD2 形状</span><span class="tag" id="building-tag">建物写真 2025</span><span class="tag" id="ground-tag">航空写真 2024</span>
+    <div id="status">Blender製GLBを読み込み中…</div>
+    <div id="stats"></div>
+    <div class="controls"><button id="reset">視点リセット</button><button id="focus" disabled>描き直した壁を見る</button><button id="rebuild" data-testid="model-toggle" disabled>全棟描き直し版を読込中…</button><button id="compare">壁面画像を比較</button><button id="mode" data-testid="mode-toggle">16色を試す</button><button id="quality">軽量表示に切替</button><span class="help">ドラッグ：回転 / ホイール：ズーム / 右ドラッグ：移動</span></div>
+    <div id="mode-note" class="help">写真表示：実在の看板や外壁を確認できます。壁面の比較視点では手前の建物を切断表示します。</div>
+    <div id="model-note" class="help"></div>
+  </header>
+  <aside id="wall-compare" hidden><p>同じ壁面・同じカメラからBlenderで描画した比較。推定して補った細部も含みます。</p><div class="compare-images"><figure><img src="../dist/real/fukushima-east/redraw_refs/bc117_wall12_before_3d.png" alt="元写真を貼った建物の壁面"><figcaption>元写真を貼付</figcaption></figure><figure><img src="../dist/real/fukushima-east/redraw_refs/bc117_wall12_after_3d.png" alt="窓などの配置を参考に描き直した建物の壁面"><figcaption>写真を参考に描き直し</figcaption></figure></div></aside>
+  <footer>© OpenStreetMap contributors / ODbL 1.0 ｜ Project PLATEAU / 福島市 ｜ 位置・標高は測量点で未検証 ｜ 運転・臨床評価には使用不可</footer>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const viewport = document.getElementById('viewport');
+    const status = document.getElementById('status');
+    const stats = document.getElementById('stats');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xa3bac5);
+    scene.fog = new THREE.Fog(0xa3bac5, 310, 780);
+    const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, .1, 1400);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'default' });
+    let sharp = true;
+    let retro = false;
+    let viewingRedrawn = false;
+    let activeAsset = null;
+    let photoAsset = null;
+    let redrawnAsset = null;
+    let photoStats = '';
+    let photoStatus = '';
+    let redrawStats = '';
+    const rebuildButton = document.getElementById('rebuild');
+    function setQuality() {
+      renderer.setPixelRatio(sharp ? Math.min(Math.max(devicePixelRatio, 1.5), 2) : 1);
+      document.getElementById('quality').textContent = sharp ? '軽量表示に切替' : '高精細表示に切替';
+    }
+    setQuality();
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    viewport.appendChild(renderer.domElement);
+    const palette = [
+      '#001122', '#112233', '#223344', '#334455', '#445566', '#667788', '#8899aa', '#ccddee',
+      '#113322', '#225533', '#447744', '#88aa66', '#553322', '#995533', '#cc8866', '#eeddcc'
+    ].map(color => new THREE.Color(color));
+    const retroTarget = new THREE.WebGLRenderTarget(1, 1, {
+      magFilter: THREE.NearestFilter, minFilter: THREE.NearestFilter,
+      generateMipmaps: false, depthBuffer: true
+    });
+    retroTarget.depthTexture = new THREE.DepthTexture(1, 1);
+    const retroMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        source: { value: retroTarget.texture },
+        depthSource: { value: retroTarget.depthTexture },
+        resolution: { value: new THREE.Vector2(1, 1) },
+        cameraNear: { value: camera.near },
+        cameraFar: { value: camera.far },
+        palette: { value: palette }
+      },
+      vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+      fragmentShader: `
+        varying vec2 vUv;
+        uniform sampler2D source;
+        uniform sampler2D depthSource;
+        uniform vec2 resolution;
+        uniform float cameraNear;
+        uniform float cameraFar;
+        uniform vec3 palette[16];
+        float viewDepth(vec2 uv) {
+          float depth = texture2D(depthSource, uv).r;
+          return cameraNear * cameraFar / (cameraFar - depth * (cameraFar - cameraNear));
+        }
+        float bayer(vec2 pixel) {
+          vec2 p = mod(pixel, 4.0);
+          if (p.y < 1.0) return p.x < 1.0 ? 0.0 : (p.x < 2.0 ? 8.0 : (p.x < 3.0 ? 2.0 : 10.0));
+          if (p.y < 2.0) return p.x < 1.0 ? 12.0 : (p.x < 2.0 ? 4.0 : (p.x < 3.0 ? 14.0 : 6.0));
+          if (p.y < 3.0) return p.x < 1.0 ? 3.0 : (p.x < 2.0 ? 11.0 : (p.x < 3.0 ? 1.0 : 9.0));
+          return p.x < 1.0 ? 15.0 : (p.x < 2.0 ? 7.0 : (p.x < 3.0 ? 13.0 : 5.0));
+        }
+        void main() {
+          vec2 pixel = floor(vUv * resolution);
+          vec3 color = texture2D(source, (pixel + 0.5) / resolution).rgb;
+          color = clamp(color + (bayer(pixel) - 7.5) * 0.006, 0.0, 1.0);
+          float bestDistance = 100.0;
+          vec3 bestColor = palette[0];
+          for (int i = 0; i < 16; i++) {
+            vec3 delta = (color - palette[i]) * vec3(0.9, 1.1, 0.7);
+            float distance = dot(delta, delta);
+            if (distance < bestDistance) { bestDistance = distance; bestColor = palette[i]; }
+          }
+          vec2 uv = (pixel + 0.5) / resolution;
+          vec2 right = uv + vec2(1.0 / resolution.x, 0.0);
+          vec2 down = uv + vec2(0.0, 1.0 / resolution.y);
+          float centerDepth = viewDepth(uv);
+          float edge = max(abs(centerDepth - viewDepth(right)), abs(centerDepth - viewDepth(down)));
+          if (edge > max(1.2, centerDepth * 0.006)) bestColor = palette[0];
+          gl_FragColor = vec4(bestColor, 1.0);
+          #include <colorspace_fragment>
+        }
+      `,
+      depthWrite: false, depthTest: false
+    });
+    const retroScene = new THREE.Scene();
+    retroScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), retroMaterial));
+    const retroCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    function sizeRetroTarget() {
+      const scale = Math.min(1, 640 / innerWidth, 400 / innerHeight);
+      const width = Math.max(1, Math.round(innerWidth * scale));
+      const height = Math.max(1, Math.round(innerHeight * scale));
+      retroTarget.setSize(width, height);
+      retroMaterial.uniforms.resolution.value.set(width, height);
+    }
+    sizeRetroTarget();
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.maxPolarAngle = Math.PI * .48;
+    controls.enableDamping = true;
+    const ambient = new THREE.HemisphereLight(0xf2f7ff, 0x738f81, 2.4);
+    scene.add(ambient);
+    const sun = new THREE.DirectionalLight(0xffe8cf, 2.4);
+    sun.position.set(-90, 160, 85);
+    scene.add(sun);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.MeshLambertMaterial({ color: 0x8da992 }));
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -.12;
+    scene.add(ground);
+    let center = new THREE.Vector3();
+    const heroCenter = new THREE.Vector3();
+    function resetView() {
+      renderer.clippingPlanes = [];
+      controls.target.copy(center);
+      camera.position.copy(center).add(new THREE.Vector3(175, 145, 185));
+      controls.update();
+    }
+    document.getElementById('reset').addEventListener('click', resetView);
+    document.getElementById('focus').addEventListener('click', () => {
+      // Cut the intervening buildings east of this wall during close comparison.
+      renderer.clippingPlanes = [new THREE.Plane(new THREE.Vector3(-1, 0, 0), -11.3)];
+      controls.target.copy(heroCenter);
+      camera.position.copy(heroCenter).add(new THREE.Vector3(66, 8, 0));
+      controls.update();
+    });
+    document.getElementById('compare').addEventListener('click', () => {
+      const panel = document.getElementById('wall-compare');
+      panel.hidden = !panel.hidden;
+      document.getElementById('compare').textContent = panel.hidden ? '壁面画像を比較' : '比較画像を閉じる';
+    });
+    document.getElementById('quality').addEventListener('click', () => { sharp = !sharp; setQuality(); });
+    function updateModeNote() {
+      document.getElementById('mode-note').textContent = retro
+        ? 'PC-9801VX風：同時16色・640×400以内。道路と建物の形を比較できます。'
+        : viewingRedrawn
+          ? '全56棟の写真UVアトラスを参照して描き直した試作です。細部には推定を含みます。'
+          : '写真表示：実在の看板や外壁を確認できます。壁面の比較視点では手前の建物を切断表示します。';
+    }
+    document.getElementById('mode').addEventListener('click', () => {
+      retro = !retro;
+      document.getElementById('mode').textContent = retro ? 'フルカラーに戻す' : '16色を試す';
+      updateModeNote();
+    });
+    rebuildButton.addEventListener('click', () => {
+      if (!photoAsset || !redrawnAsset) return;
+      scene.remove(activeAsset);
+      viewingRedrawn = !viewingRedrawn;
+      activeAsset = viewingRedrawn ? redrawnAsset : photoAsset;
+      scene.add(activeAsset);
+      rebuildButton.textContent = viewingRedrawn ? '元写真の街に戻す' : '全棟描き直し版を試す';
+      status.textContent = viewingRedrawn ? '写真準拠の全56棟描き直し試作' : photoStatus;
+      stats.textContent = viewingRedrawn ? redrawStats : photoStats;
+      document.getElementById('model-note').textContent = viewingRedrawn
+        ? '建物形状とUVを維持し、写真付き1,734面を描き直し。判読不能な細部は推定を含みます。'
+        : '';
+      document.getElementById('summary').textContent = viewingRedrawn
+        ? '福島駅東口56棟の元写真を参照し、壁・屋根を描き直したGLBです。'
+        : 'PLATEAUの建物写真と航空写真をBlenderで組み立てたGLBです。';
+      document.getElementById('building-tag').textContent = viewingRedrawn ? '建物56棟を描き直し' : '建物写真 2025';
+      document.getElementById('ground-tag').textContent = '航空写真 2024';
+      updateModeNote();
+    });
+
+    const glbUrl = '../dist/real/fukushima-east/city_sharp.glb';
+    const rebuiltUrl = '../dist/real/fukushima-east/city_photo_redrawn_all.glb';
+    const mapUrl = '../dist/real/fukushima-east/map.json';
+    const provenanceUrl = '../dist/real/fukushima-east/city_sharp.provenance.json';
+    const rebuiltProvenanceUrl = '../dist/real/fukushima-east/city_photo_redrawn_all.provenance.json';
+    const loader = new GLTFLoader();
+    const glb = new Promise((resolve, reject) => loader.load(glbUrl, resolve, undefined, reject));
+    Promise.all([glb, fetch(mapUrl).then(r => { if (!r.ok) throw new Error(`map HTTP ${r.status}`); return r.json(); }),
+      fetch(provenanceUrl).then(r => { if (!r.ok) throw new Error(`provenance HTTP ${r.status}`); return r.json(); })])
+      .then(([asset, map, provenance]) => {
+        const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        asset.scene.traverse(object => {
+          if (!object.isMesh) return;
+          for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+            if (material?.map) {
+              material.map.anisotropy = anisotropy;
+              material.map.needsUpdate = true;
+            }
+          }
+        });
+        photoAsset = asset.scene;
+        activeAsset = photoAsset;
+        scene.add(activeAsset);
+        const box = new THREE.Box3().setFromObject(asset.scene);
+        box.getCenter(center);
+        center.y = Math.max(8, center.y * .35);
+        const hero = map.buildings.find(b => b.id === 'plateau-bldg_bc117abb-d716-47ca-b1a2-c4044ba8509a');
+        if (hero) {
+          heroCenter.set(-11.7, 13, 1.7);
+          document.getElementById('focus').disabled = false;
+        }
+        resetView();
+        const quality = map.data_quality === 'SYNTHETIC_TEST_FIXTURE' ? '架空の試験データ' : '実データ・測量点で未検証';
+        photoStatus = `読込成功：${quality}`;
+        photoStats = `建物 ${map.buildings.length}棟 / OSM道路データ ${map.roads.length}本\nLOD2面 ${provenance.lod2_surfaces}枚・写真付き ${provenance.textured_surfaces}枚\n公式JPEG ${provenance.texture_images}枚・${provenance.ground_imagery || '地面画像なし'}\nGLB ${(provenance.bytes / 1024 / 1024).toFixed(1)} MB / city_sharp.blend`;
+        status.textContent = photoStatus;
+        stats.textContent = photoStats;
+      })
+      .catch(error => { status.textContent = `読込エラー：${error.message}`; });
+    Promise.all([
+      new Promise((resolve, reject) => loader.load(rebuiltUrl, resolve, undefined, reject)),
+      fetch(rebuiltProvenanceUrl).then(r => { if (!r.ok) throw new Error(`rebuild provenance HTTP ${r.status}`); return r.json(); })
+    ]).then(([asset, provenance]) => {
+      redrawnAsset = asset.scene;
+      redrawStats = `建物 ${provenance.lod2_buildings}棟 / 写真付き壁・屋根 ${provenance.textured_surfaces}面\n写真を基に描き直した面 ${provenance.redrawn_surfaces}面 / アトラス ${provenance.redrawn_atlases}枚\nGLB ${(provenance.bytes / 1024 / 1024).toFixed(1)} MB / city_photo_redrawn_all.blend`;
+      const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      redrawnAsset.traverse(object => {
+        if (!object.isMesh) return;
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          if (material?.map) {
+            material.map.anisotropy = anisotropy;
+            material.map.needsUpdate = true;
+          }
+        }
+      });
+      rebuildButton.disabled = false;
+      rebuildButton.textContent = '全棟描き直し版を試す';
+    }).catch(error => {
+      rebuildButton.textContent = '描き直し版の読込失敗';
+      document.getElementById('model-note').textContent = error.message;
+    });
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      sizeRetroTarget();
+    });
+    function tick() {
+      requestAnimationFrame(tick);
+      controls.update();
+      if (retro) {
+        renderer.setRenderTarget(retroTarget);
+        renderer.render(scene, camera);
+        renderer.setRenderTarget(null);
+        renderer.render(retroScene, retroCamera);
+      } else {
+        renderer.render(scene, camera);
+      }
+    }
+    tick();
+  </script>
+</body>
+</html>

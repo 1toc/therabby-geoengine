@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import * as THREE from '../viewer/vendor/three/build/three.module.js';
+import {findWalkCollision,findWalkInterior,walkSlide,insideWalkArea,walkElevationAllowed} from '../viewer/geoengine-walk-collision.js';
+
+// Synthetic, deliberately one-sided vertical plane; not Fukushima geometry.
+const plane=new THREE.Mesh(new THREE.PlaneGeometry(4,4),new THREE.MeshBasicMaterial({side:THREE.FrontSide}));
+plane.position.y=1;plane.updateMatrixWorld(true);
+const ray=new THREE.Raycaster();
+const front=findWalkCollision([plane],new THREE.Vector3(0,1.6,1),new THREE.Vector3(0,0,-0.8),ray);
+assert.ok(front,'front side must block');
+const back=findWalkCollision([plane],new THREE.Vector3(0,1.6,-1),new THREE.Vector3(0,0,0.8),ray);
+assert.ok(back,'back side must block');
+assert.equal(plane.material.side,THREE.FrontSide,'material setting restored');
+const slide=walkSlide(new THREE.Vector3(1,0,-1),front);
+assert.ok(slide);assert.ok(Math.abs(slide.x-1)<1e-6);assert.ok(Math.abs(slide.z)<1e-6);
+assert.equal(walkSlide(new THREE.Vector3(0,0,-1),front),null);
+const building=new THREE.Mesh(new THREE.BoxGeometry(4,6,4),new THREE.MeshBasicMaterial({side:THREE.FrontSide}));
+building.position.y=3;building.updateMatrixWorld(true);
+assert.ok(findWalkInterior([building],new THREE.Vector3(0,1.6,0),ray),'synthetic building interior must block');
+assert.equal(findWalkInterior([building],new THREE.Vector3(3,1.6,0),ray),null,'outside must remain walkable');
+assert.equal(building.material.side,THREE.FrontSide,'roof probe restores material');
+const roof=new THREE.Mesh(new THREE.PlaneGeometry(4,4),new THREE.MeshBasicMaterial({side:THREE.FrontSide}));
+roof.rotation.x=-Math.PI/2;roof.position.y=6;roof.updateMatrixWorld(true);
+assert.ok(findWalkInterior([roof],new THREE.Vector3(0,1.6,0),ray),'separate roof must block');
+const area={center_east_m:100,center_north_m:200,half_size_m:150};
+assert.equal(insideWalkArea(area,250,50),true);
+assert.equal(insideWalkArea(area,250.01,50),false);
+assert.equal(insideWalkArea(area,NaN,50),false);
+assert.equal(walkElevationAllowed(101.6,100.1,0.1),true);
+assert.equal(walkElevationAllowed(101.6,101,0.1),false);
+assert.equal(walkElevationAllowed(101.6,NaN,0.1),false);
+console.log('PASS synthetic walk collision: front, back, slide, head-on');

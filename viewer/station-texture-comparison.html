@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>駅前の公式写真テクスチャ比較</title>
+<style>
+body{font:16px/1.6 system-ui,sans-serif;margin:0;background:#10262e;color:#edf6f3}main{max-width:1480px;margin:auto;padding:24px}h1{font-size:24px}p{color:#c2d5d2}a{color:#a5e3d2}.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}figure{margin:0;background:#1c3740;border-radius:8px;padding:12px}figcaption{font-weight:700;margin-bottom:8px}canvas,img{display:block;width:100%;height:auto;background:#080b0c}small{display:block;color:#bdcecc}input[type=range]{width:180px}@media(max-width:800px){.panels{grid-template-columns:1fr}}
+</style>
+</head><body><main>
+<h1>建物写真の鮮明化：同じ画像で比較</h1>
+<p>福島市2025 PLATEAU公式テクスチャの正面部分です。3Dモデルへの適用前の比較です。画像のサイズを大きくしても実際の細部が増えるわけではありません。</p>
+<div class="controls"><label for="strength">輪郭補正の強さ</label><input id="strength" type="range" min="0" max="2" step="0.1" value="0.8"><output id="strength-value">0.8</output></div>
+<div class="panels">
+ <figure><figcaption>① 公式写真（元画像）</figcaption><canvas id="original"></canvas><small>公式JPEGをそのまま表示。拡大表示時は補間のみ。</small></figure>
+ <figure><figcaption>② 通常の拡大＋輪郭補正</figcaption><canvas id="sharp"></canvas><small>拡大と輪郭強調。新しい実在情報は増えません。</small></figure>
+</div>
+<p>出典：Project PLATEAU / 福島市 2025。<a href="../data/derived/station-photo-pilot/a4fdf53b-4765-4cbc-ae1b-92f25562ddc1.jpg">元JPEG全体を見る</a>（建物の面を並べた画像）</p>
+</main><script type="module" src="./station-texture-comparison.js"></script></body></html>

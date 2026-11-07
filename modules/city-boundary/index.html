@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="theme-color" content="#071a24"/>
+  <title>Therabby GeoEngine | Fukushima Boundary · STEP 1-2</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+  <link rel="stylesheet" href="./src/styles.css"/>
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar" aria-label="データ・表示操作">
+      <div class="toplabel"><span class="logo">T<span class="logo-dot">.</span></span><span class="brand">THERABBY<br><b>GEOENGINE</b></span><span class="version">v0.1.2</span></div>
+      <div class="hairline"></div>
+      <div class="section-kicker">PROJECT / 07201</div>
+      <h1>福島市<br><em>REAL GEOGRAPHY</em></h1>
+      <p class="intro">日本の実地理データを、歩行・運転・生活支援の共通基盤へ。</p>
+      <div class="stage"><span class="stage-icon">01</span><div><b>行政区域データ</b><small>STEP 1-1 / CITY BOUNDARY</small></div><span class="stage-chip">DATA</span></div>
+      <div class="section-title"><span>REGION STATUS</span><span class="tiny-line"></span></div>
+      <div class="metric"><span>市区町村コード</span><strong>07201</strong></div>
+      <div class="metric"><span>座標系</span><strong>WGS 84 / EPSG:4326</strong></div>
+      <div class="metric"><span>境界データ</span><strong id="quality">読み込み中</strong></div>
+      <div class="metric"><span>基準年</span><strong id="source-year">確認中</strong></div>
+      <div class="metric"><span>概略面積</span><strong id="area">確認中</strong></div>
+      <div class="section-title"><span>ROAD DATA / STEP 1-2</span><span class="tiny-line"></span></div>
+      <div class="stage stage-road"><span class="stage-icon">02</span><div><b>OpenStreetMap 道路網</b><small>STEP 1-2 / OSM ROAD NETWORK</small></div><span class="stage-chip">ROAD</span></div>
+      <div class="metric"><span>道路データ</span><strong id="road-import">読み込み中</strong></div>
+      <div class="metric"><span>抽出道路（OSM way）</span><strong id="road-count">0</strong></div>
+      <div class="metric"><span>現在表示する線分</span><strong id="road-visible">0</strong></div>
+      <div class="metric"><span>ソース / 境界</span><strong id="road-source">—</strong></div>
+      <label class="toggle"><input type="checkbox" id="roads-on" checked/><span>OSM道路中心線を表示</span></label>
+      <label class="toggle"><input type="checkbox" id="walk-on"/><span>歩道・歩行者道も表示</span></label>
+      <div class="legend"><span><i class="legend-dot major"></i>幹線系</span><span><i class="legend-dot local"></i>生活道路</span><span><i class="legend-dot walk"></i>歩行者道</span></div>
+      <button id="reload-roads" class="btn secondary">↻ 道路データを再読み込み</button>
+      <div class="notice road-notice" id="road-message" role="status">道路インデックスを準備しています…</div>
+      <a class="btn secondary" href="http://127.0.0.1:8767/viewer/citywide-lod1-preview.html" style="display:block;text-align:center;text-decoration:none">↗ 市全域の建物3Dプレビュー</a>
+      <div class="section-title"><span>MAP CONTROLS</span><span class="tiny-line"></span></div>
+      <div class="buttons"><button id="fit" class="btn primary">◎ 市域全体を見る</button><button id="station" class="btn">↗ 福島駅周辺</button></div>
+      <label class="toggle"><input id="boundary-on" type="checkbox" checked/><span>行政区域の境界を表示</span></label>
+      <label class="toggle"><input id="fill-on" type="checkbox" checked/><span>市域を薄く塗りつぶす</span></label>
+      <button id="download" class="btn secondary">↓ GeoJSON を保存</button>
+      <div id="status" role="status" class="notice">地理データを準備しています…</div>
+      <div class="source"><span class="source-title">DATA PROVENANCE</span><p id="source-name">読み込み中</p><a id="source-link" href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2026.html" target="_blank" rel="noreferrer">データの出典を見る ↗</a><p class="small" id="source-warning"></p></div>
+      <footer>THERABBY / GEOENGINE　·　STEP 1 OF 6<br>地図：国土地理院　道路：© OpenStreetMap contributors（ODbL）</footer>
+    </aside>
+    <main class="map-shell">
+      <div id="map" aria-label="福島市の地図"></div>
+      <div class="map-top"><div class="map-heading"><span class="pulse"></span> FUKUSHIMA CITY <span>/ BOUNDARY + OSM ROADS</span></div><span class="map-tag">2D MAP</span></div>
+      <div class="compass">N <span>↑</span></div>
+      <div class="map-bottom"><div class="coordinates"><span>MAP COORDINATES</span><strong id="coords">地図をクリックして座標を確認</strong></div><span class="hint">クリック：座標の表示　·　ホイール：拡大縮小　·　ドラッグ：移動</span></div>
+      <div class="map-loading" id="loading"><div class="loading-title">GEOGRAPHY INITIALIZING</div><p>福島市の境界と地図を準備中…</p></div>
+    </main>
+  </div>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="./src/roads.js?v=step1-2-citywide-20261030" defer></script>
+  <script src="./src/app.js?v=step1-2-citywide-20261030" defer></script>
+</body>
+</html>

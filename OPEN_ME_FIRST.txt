@@ -1,0 +1,15 @@
+Therabby GeoEngine station preview
+
+Open start_station_lod2.cmd in this folder. Wait until the file check finishes;
+the browser opens automatically. Keep the PowerShell window open while viewing.
+Station mode loads nearby official JPEG photos on demand (117 candidates).
+Medium quality is the initial setting; High raises render quality.
+Do not open viewer/citywide-v1.html directly as a file: the map data needs the
+local HTTP server started by the command file.
+
+Python and Blender are not required on the viewing PC. The server selects an
+available local port starting at 8767. If Windows asks whether to allow
+PowerShell network access, only local 127.0.0.1 access is used.
+
+If the window closes or the map shows a red error, send its screenshot or the
+exact error message for diagnosis.

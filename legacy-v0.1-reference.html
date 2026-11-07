@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Therabby GEO DRIVE | Fukushima 3D City Lab v0.1</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,"Noto Sans JP",system-ui,-apple-system,"Segoe UI",sans-serif;color:#eaf3ff;background:#08111b}
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #56ddcb;outline-offset:3px}
+    #viewport{position:fixed;inset:0;background:radial-gradient(circle at 50% 30%,#344f69,#112339 65%,#08111b)}
+    #viewport canvas{display:block;width:100%;height:100%;touch-action:none}
+    .topbar{position:absolute;top:20px;left:20px;right:20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;pointer-events:none}
+    .glass{background:rgba(8,19,33,.84);border:1px solid rgba(161,196,231,.17);box-shadow:0 12px 38px rgba(0,0,0,.25);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:18px;pointer-events:auto}
+    .brand{padding:17px 20px;min-width:290px}.eyebrow{display:flex;align-items:center;gap:8px;color:#78e2d6;text-transform:uppercase;font-weight:760;font-size:10px;letter-spacing:.18em}.pulse{width:8px;height:8px;border-radius:50%;background:#5be1c8;box-shadow:0 0 14px #5be1c8}
+    h1{margin:8px 0 4px;font-size:20px;letter-spacing:.02em;line-height:1.2}.brand p{color:#91aabd;font-size:11px;margin:0;line-height:1.5}
+    .stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.stat{padding:12px 15px;min-width:94px}.stat-label{display:block;color:#91aabd;font-size:10px}.stat strong{display:block;font-size:18px;margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .side{position:absolute;left:20px;top:146px;width:280px;max-height:calc(100vh - 245px);overflow-y:auto;scrollbar-width:thin;padding:16px;pointer-events:auto}
+    .section-title{color:#99b1c4;font-size:10px;font-weight:740;letter-spacing:.12em;margin:4px 0 11px}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btn{border:1px solid #2a465c;background:#163049;color:#e6f0ff;border-radius:10px;padding:10px 8px;font-size:12px;font-weight:650;transition:.16s}.btn:hover{background:#214665}.btn.primary{background:#087d78;border-color:#149c96;color:white}.btn.active{border-color:#5edcc8;box-shadow:inset 0 0 0 1px #5edcc8;color:#89f4df}
+    .divider{height:1px;background:rgba(255,255,255,.1);margin:16px 0}.info{font-size:11px;color:#b8cada;line-height:1.75}.info strong{color:#eaf3ff}.status{padding:10px 11px;border-radius:10px;background:#142638;border:1px solid #273f50;white-space:pre-line}.status.error{color:#ffb7a9;background:#352224;border-color:#7d4141}.status.ok{color:#a0f4da;background:#102d2e;border-color:#236c68}
+    .keyline{display:flex;justify-content:space-between;gap:12px;margin:8px 0}.kbd{font-size:10px;border-radius:4px;border:1px solid #466076;padding:2px 5px;background:#182b41;color:#dfeeff;white-space:nowrap}
+    .bottom{position:absolute;left:50%;transform:translateX(-50%);bottom:22px;display:flex;align-items:center;gap:8px;padding:10px}.drive-tab{font-size:12px;padding:10px 13px;border:0;border-radius:10px;background:transparent;color:#a9bfd4;font-weight:700;white-space:nowrap}.drive-tab.active{color:#071b23;background:#7de9d5}.speed{min-width:100px;border-left:1px solid #35516a;text-align:center;padding:0 10px}.speed strong{font-variant-numeric:tabular-nums;font-size:24px}.speed span{font-size:9px;color:#a2bed3}
+    .right-panel{position:absolute;right:20px;bottom:22px;padding:12px;width:196px}.minimap{width:170px;height:150px;display:block;background:#13283a;border-radius:10px;border:1px solid #34516b}.maptitle{margin:0 0 7px;color:#a9c8d6;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+    .mobile-pad{display:none;position:absolute;right:20px;bottom:210px;grid-template-columns:repeat(3,44px);gap:5px;touch-action:none}.pad{width:44px;height:44px;border:1px solid #4c7282;background:#15324bab;color:#c1ffea;border-radius:10px;font-size:20px}
+    .error-screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:#0a1622e8;text-align:center;z-index:10}.error-screen>div{max-width:460px;padding:30px}.error-screen p{color:#b4c5d3;line-height:1.8}.error-screen a{color:#82e9e2}
+    .attribution{position:absolute;bottom:6px;left:20px;font-size:9px;color:#7898aa;pointer-events:none}
+    .hidden-file{display:none}
+    @media(max-width:900px){.stats .stat:nth-child(3){display:none}.side{top:130px;width:235px}.right-panel{right:12px;width:158px}.minimap{width:132px;height:130px}.brand{min-width:220px}.brand h1{font-size:17px}.mobile-pad{display:grid}}
+    @media(max-width:620px){.topbar{top:10px;left:10px;right:10px}.brand{padding:12px;min-width:0}.brand h1{font-size:14px}.brand p{display:none}.stats{gap:5px}.stat{padding:9px;min-width:63px}.stat strong{font-size:13px}.stat-label{font-size:9px}.side{top:auto;bottom:75px;left:10px;width:211px;max-height:255px;padding:10px}.side .info,.side .divider:nth-of-type(2),.side .section-title:nth-of-type(2){display:none}.right-panel{right:10px;bottom:80px;width:125px;padding:6px}.minimap{width:110px;height:105px}.bottom{bottom:9px;padding:6px}.drive-tab{font-size:10px;padding:8px}.speed{min-width:55px;padding:0 4px}.speed strong{font-size:17px}.mobile-pad{bottom:215px;right:10px;grid-template-columns:repeat(3,36px)}.pad{width:36px;height:36px}.buttons{gap:5px}.btn{font-size:10px;padding:8px 5px}.attribution{left:10px;bottom:3px;font-size:8px}}
+  </style>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js"}}</script>
+</head>
+<body>
+  <div id="viewport"></div>
+  <header class="topbar">
+    <div class="glass brand"><div class="eyebrow"><span class="pulse"></span> THERABBY / GEO LAB v0.1</div><h1>福島 3D CITY DRIVE</h1><p>福島駅周辺 · OpenStreetMap × Three.js</p></div>
+    <div class="stats"><div class="glass stat"><span class="stat-label">建物</span><strong id="buildings">—</strong></div><div class="glass stat"><span class="stat-label">道路区間</span><strong id="roads">—</strong></div><div class="glass stat"><span class="stat-label">FPS</span><strong id="fps">—</strong></div></div>
+  </header>
+  <aside class="glass side">
+    <div class="section-title">01 / MAP DATA</div>
+    <div class="buttons"><button class="btn primary" id="load-osm">実際の地図を取得</button><button class="btn" id="load-demo">架空街区デモ</button></div>
+    <div style="height:9px"></div><div class="buttons"><button class="btn" id="load-file">OSM JSONを開く</button><button class="btn" id="reset-car">車を初期位置へ</button></div>
+    <input class="hidden-file" id="osm-file" type="file" accept=".json,application/json">
+    <div style="height:12px"></div><div class="info status" id="status">Three.jsを初期化しています…</div>
+    <div class="divider"></div>
+    <div class="section-title">02 / CAMERA</div>
+    <div class="buttons"><button class="btn active" id="cam-chase">追従カメラ</button><button class="btn" id="cam-cockpit">運転席視点</button><button class="btn" id="cam-map">俯瞰カメラ</button><button class="btn" id="cam-aerial">空撮カメラ</button></div>
+    <div class="divider"></div>
+    <div class="section-title">03 / CONTROLS</div>
+    <div class="info"><div class="keyline"><span>アクセル・ブレーキ</span><span class="kbd">W / S</span></div><div class="keyline"><span>ハンドル</span><span class="kbd">A / D</span></div><div class="keyline"><span>カメラ切替</span><span class="kbd">C</span></div><div class="keyline"><span>初期位置に戻す</span><span class="kbd">R</span></div></div>
+    <div class="divider"></div>
+    <div class="info">道路中心線と建物形状を可視化します。<strong>交通法規・衝突判定・運転能力評価は未実装</strong>です。建物の高さは、OSMに高さ情報がない場合は推定表示です。</div>
+  </aside>
+  <div class="glass bottom"><button id="mode-drive" class="drive-tab active">🚗 運転</button><button id="mode-walk" class="drive-tab">🚶 歩行</button><div class="speed"><strong id="speed">0</strong> <span>km/h</span></div></div>
+  <aside class="glass right-panel"><div class="maptitle">LIVE MINI MAP · N ↑</div><canvas class="minimap" id="minimap" width="340" height="300"></canvas></aside>
+  <div class="mobile-pad"><span></span><button class="pad" data-key="w" aria-label="前進">▲</button><span></span><button class="pad" data-key="a" aria-label="左折">◀</button><button class="pad" data-key="s" aria-label="後退">▼</button><button class="pad" data-key="d" aria-label="右折">▶</button></div>
+  <div class="attribution">地理情報 © OpenStreetMap contributors (ODbL) · 建物高さ未収録時は架空値 · 非臨床評価用デモ</div>
+  <div class="error-screen" id="fatal"><div class="glass"><h2>3Dエンジンを読み込めませんでした</h2><p id="fatal-message">インターネット接続を確認してください。Three.jsをCDNから読み込む構成です。組織ネットワークではCDNの接続が制限される場合があります。</p><p><a href="https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js" target="_blank" rel="noopener noreferrer">Three.js CDN接続確認</a></p></div></div>
+  <script type="module">
+    import * as THREE from 'three';
+
+    const $ = (id) => document.getElementById(id);
+    const CENTER = {lat:37.75445, lon:140.46190};  // 福島駅東口付近。緯度経度は地理データ表示用の座標。
+    const HALF = 430; // 860 m の正方形。描画・取得領域の目安
+    const X_FACTOR = 111320 * Math.cos(CENTER.lat * Math.PI/180);
+    const Z_FACTOR = 111320;
+    const world = new THREE.Group();
+    const roadColor = 0x344a57, pathColor = 0x93b5c9;
+    const buildings = [], roads = [], roadSegments = [];
+    let currentSource = 'demo';
+    let cameraMode = 'chase', walkMode = false;
+    const vehicle = {x:0,z:0,h:0,speed:0};
+    let spawn = {x:0,z:0,h:0};
+    const keys = {w:false,a:false,s:false,d:false};
+    let lastFps = 0,frameCount = 0, fpsTime = 0, mapTime = 0;
+
+    function setStatus(msg, type='') { $('status').className='info status'+(type?' '+type:'');$('status').textContent=msg;}
+    function loc(lat,lon) {return {x:(lon-CENTER.lon)*X_FACTOR, z:-(lat-CENTER.lat)*Z_FACTOR};}
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x8faac0); scene.fog=new THREE.FogExp2(0x9ab0be,0.0007);
+    const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,0.2,2000);
+    const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'low-power'});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.4));renderer.setSize(innerWidth,innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    $('viewport').appendChild(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xe9f6ff,0x6e8796,2.15));
+    const sun=new THREE.DirectionalLight(0xffeed1,2.4);sun.position.set(-200,320,-180);scene.add(sun);
+    const ground=new THREE.Mesh(new THREE.PlaneGeometry(2600,2600),new THREE.MeshLambertMaterial({color:0x718c87}));
+    ground.rotation.x=-Math.PI/2;ground.position.y=-.11;scene.add(ground);scene.add(world);
+    const grid=new THREE.GridHelper(1600,80,0x76938e,0x76938e);grid.material.transparent=true;grid.material.opacity=.16;grid.position.y=.005;scene.add(grid);
+
+    // マップ座標は X=東、Z=南（北が -Z）。衝突判定・ナビゲーションは含めない。
+    const car=new THREE.Group();
+    const carBodyMat=new THREE.MeshStandardMaterial({color:0x36c9bd,metalness:.4,roughness:.35});
+    const glassMat=new THREE.MeshStandardMaterial({color:0x172d42,metalness:.05,roughness:.2});
+    const tireMat=new THREE.MeshStandardMaterial({color:0x172029,roughness:.9});
+    function box(parent,w,h,d,mat,x,y,z){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.set(x,y,z);parent.add(mesh);return mesh;}
+    box(car,1.9,.65,4.2,carBodyMat,0,.65,0);box(car,1.52,.60,2.2,glassMat,0,1.17,.2);
+    for(let sx of [-1,1])for(let sz of [-1,1]){
+      const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.39,.39,.25,12),tireMat);
+      wheel.rotation.z=Math.PI/2;wheel.position.set(sx*1.01,.39,sz*1.28);car.add(wheel);
+    }
+    for(let x of [-.65,.65]){box(car,.38,.22,.07,new THREE.MeshBasicMaterial({color:0xffebaf}),x,.72,-2.13);box(car,.37,.2,.07,new THREE.MeshBasicMaterial({color:0xff5957}),x,.72,2.13);}
+    scene.add(car);
+    const person=new THREE.Group();
+    const personMat=new THREE.MeshStandardMaterial({color:0x3ed2c1});
+    box(person,.56,1,.3,personMat,0,1.05,0);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(.29,12,10),new THREE.MeshStandardMaterial({color:0xf0c7a2}));head.position.y=1.83;person.add(head);scene.add(person);
+
+    const buildingColors=[0xb9c5c6,0x9eafbd,0xd0c9bb,0xb4b9b5,0xa6b1b1,0xc6bdae,0x9dabad];
+    function strHash(n){let x=(n*1664525+1013904223)>>>0;return (x%10000)/10000;}
+    function clearMap(){while(world.children.length){const obj=world.children.pop();obj.parent=null;obj.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material && o.userData.ownMaterial)o.material.dispose();});}buildings.length=0;roads.length=0;roadSegments.length=0;}
+    const sharedRoadMat=new THREE.MeshLambertMaterial({color:roadColor,side:THREE.DoubleSide});
+    const roadEdgeMat=new THREE.MeshLambertMaterial({color:0x8fa3a1,side:THREE.DoubleSide});
+    const laneMat=new THREE.MeshBasicMaterial({color:0xdbcfad,side:THREE.DoubleSide});
+    function createRoadSegments(){
+      // 道路ごとに個別 Mesh を生成せず、1枚の BufferGeometry に結合する
+      const verts=[], edgeVerts=[], dashVerts=[];
+      function quadTo(list,ax,az,bx,bz,w,y){const dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz);if(len<.8)return;const nx=-dz/len*w/2,nz=dx/len*w/2;
+        list.push(ax+nx,y,az+nz,ax-nx,y,az-nz,bx+nx,y,bz+nz, bx+nx,y,bz+nz,ax-nx,y,az-nz,bx-nx,y,bz-nz);}
+      for(const r of roadSegments){for(let i=1;i<r.points.length;i++){
+        const a=r.points[i-1],b=r.points[i];const clipped=clipSegment(a.x,a.z,b.x,b.z,HALF+35);if(!clipped)continue;
+        const [ax,az,bx,bz]=clipped;quadTo(edgeVerts,ax,az,bx,bz,r.width+1.5,.006);quadTo(verts,ax,az,bx,bz,r.width,.014);
+        if(r.width>=9){const len=Math.hypot(bx-ax,bz-az),count=Math.floor(len/17),ux=(bx-ax)/len,uz=(bz-az)/len;for(let j=0;j<count;j++){const start=j*17+4,end=Math.min(start+5,len);quadTo(dashVerts,ax+ux*start,az+uz*start,ax+ux*end,az+uz*end,.15,.03);}}
+      }}
+      function make(v,m){if(!v.length)return;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.computeVertexNormals();world.add(new THREE.Mesh(g,m));}
+      make(edgeVerts,roadEdgeMat);make(verts,sharedRoadMat);make(dashVerts,laneMat);
+    }
+    function clipSegment(x0,z0,x1,z1,lim){
+      let t0=0,t1=1,dx=x1-x0,dz=z1-z0;
+      for(const [p,q] of [[-dx,x0+lim],[dx,lim-x0],[-dz,z0+lim],[dz,lim-z0]]){
+        if(Math.abs(p)<1e-9){if(q<0)return null;continue;}
+        const r=q/p;if(p<0){if(r>t1)return null;if(r>t0)t0=r;}else{if(r<t0)return null;if(r<t1)t1=r;}
+      }
+      return [x0+t0*dx,z0+t0*dz,x0+t1*dx,z0+t1*dz];
+    }
+    function makeBuilding(points,height,id){
+      if(points.length<3)return;
+      const clean=points.filter((p,i)=>i===0||Math.hypot(p.x-points[i-1].x,p.z-points[i-1].z)>.15);
+      if(clean.length<3)return;
+      if(Math.hypot(clean[0].x-clean.at(-1).x,clean[0].z-clean.at(-1).z)<.1)clean.pop();
+      if(clean.length<3)return;
+      const cx=clean.reduce((v,p)=>v+p.x,0)/clean.length,cz=clean.reduce((v,p)=>v+p.z,0)/clean.length;
+      if(Math.abs(cx)>HALF+70||Math.abs(cz)>HALF+70)return;
+      const shape=new THREE.Shape();shape.moveTo(clean[0].x-cx,-(clean[0].z-cz));
+      for(const p of clean.slice(1))shape.lineTo(p.x-cx,-(p.z-cz));shape.closePath();
+      const geom=new THREE.ExtrudeGeometry(shape,{depth:height,bevelEnabled:false,curveSegments:1});geom.rotateX(-Math.PI/2);
+      const mat=new THREE.MeshLambertMaterial({color:buildingColors[Math.abs(id)%buildingColors.length]});
+      const mesh=new THREE.Mesh(geom,mat);mesh.position.set(cx,.025,cz);mesh.userData.ownMaterial=true;world.add(mesh);
+      buildings.push({x:cx,z:cz,w:Math.max(...clean.map(p=>p.x))-Math.min(...clean.map(p=>p.x)),h:Math.max(...clean.map(p=>p.z))-Math.min(...clean.map(p=>p.z))});
+    }
+    function addTree(x,z,r=2.5){const tree=new THREE.Group(),wood=new THREE.MeshLambertMaterial({color:0x67523e}),leaf=new THREE.MeshLambertMaterial({color:0x426e58});
+      const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.15,.22,3,5),wood);trunk.position.y=1.5;tree.add(trunk);
+      const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(r,0),leaf);crown.position.y=4.4;tree.add(crown);tree.position.set(x,0,z);tree.traverse(o=>{if(o.material)o.userData.ownMaterial=true;});world.add(tree);}
+    function setSpawnFromRoads(preferEast){
+      let best=null,score=Infinity;const target={x:preferEast?120:0,z:0};
+      for(const r of roadSegments){if(r.width<=3)continue;for(let i=1;i<r.points.length;i++){
+        const a=r.points[i-1],b=r.points[i];const x=(a.x+b.x)/2,z=(a.z+b.z)/2;
+        if(Math.abs(x)>HALF-15||Math.abs(z)>HALF-15)continue;
+        const len=Math.hypot(b.x-a.x,b.z-a.z);if(len<8)continue;
+        const dist=Math.hypot(x-target.x,z-target.z)+(r.width>7?-12:0);
+        if(dist<score){score=dist;best={x,z,h:Math.atan2(-(b.x-a.x),-(b.z-a.z))};}
+      }}
+      spawn=best||{x:0,z:0,h:0};resetCar(false);
+    }
+    function resetCar(show=true){Object.assign(vehicle,{...spawn,speed:0});if(show)setStatus('車両を開始位置へ戻しました。','ok');}
+    function completeLoad(kind, extra){currentSource=kind;createRoadSegments();setSpawnFromRoads(kind==='osm');$('buildings').textContent=buildings.length.toLocaleString('ja-JP');$('roads').textContent=roadSegments.length.toLocaleString('ja-JP');setStatus(extra,'ok');}
+
+    function makeDemo(){
+      clearMap();const spacing=100;
+      for(let k=-4;k<=4;k++){
+        const at=k*spacing;
+        roadSegments.push({points:[{x:-HALF,z:at},{x:HALF,z:at}],width:k%2===0?12:7});
+        roadSegments.push({points:[{x:at,z:-HALF},{x:at,z:HALF}],width:k%2===0?12:7});
+      }
+      let id=0;
+      for(let ix=-4;ix<4;ix++)for(let iz=-4;iz<4;iz++){
+        for(let a=0;a<2;a++)for(let b=0;b<2;b++){
+          const seed=id++;const jitter=strHash(seed*67);if(jitter<.12)continue;
+          const cx=ix*100+27+a*46+((seed%3)-1)*2,cz=iz*100+25+b*47;
+          const ww=24+strHash(seed*19)*12,dd=25+strHash(seed*29)*12;
+          const h=7+strHash(seed*73)*((ix+iz)%3===0?58:25);
+          makeBuilding([{x:cx-ww/2,z:cz-dd/2},{x:cx+ww/2,z:cz-dd/2},{x:cx+ww/2,z:cz+dd/2},{x:cx-ww/2,z:cz+dd/2}],h,seed);
+        }
+        if((ix+iz)%3===0)addTree(ix*100+50,iz*100+50,2.3);
+      }
+      completeLoad('demo','架空街区を表示中（道路と建物は生成データ）。\n「実際の地図を取得」で福島駅周辺のOSMを読み込みます。');
+      $('load-demo').classList.add('active');$('load-osm').classList.remove('active');
+    }
+    function osmHeight(tags,id){
+      if(tags.height){const h=parseFloat(tags.height);if(Number.isFinite(h)&&h>1&&h<450)return h;}
+      if(tags['building:levels']){const l=parseFloat(tags['building:levels']);if(Number.isFinite(l)&&l>0&&l<100)return 3*l;}
+      return 6+strHash(id)*26; // 「推定高さ」: OSM値ではない
+    }
+    function roadWidth(tags){
+      if(tags.width){const w=parseFloat(tags.width);if(w>1&&w<60)return w;}
+      const kind=tags.highway;
+      if(['motorway','trunk'].includes(kind))return 19;
+      if(['primary','secondary'].includes(kind))return 14;
+      if(['tertiary'].includes(kind))return 11;
+      if(['residential','unclassified','living_street'].includes(kind))return 7;
+      if(['service','pedestrian'].includes(kind))return 5;
+      if(['footway','cycleway','path','steps'].includes(kind))return 2.2;
+      return 6;
+    }
+    function applyOSM(data){
+      if(!Array.isArray(data.elements))throw new Error('Overpass形式のJSON（elements配列）ではありません。');
+      const nodes=new Map();
+      for(const n of data.elements)if(n.type==='node')nodes.set(n.id,n);
+      const ways=data.elements.filter(e=>e.type==='way');
+      clearMap();let id=0;
+      for(const w of ways){const tags=w.tags||{};if(!tags.highway && !tags.building)continue;
+        let pts;
+        if(Array.isArray(w.geometry))pts=w.geometry.filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)).map(p=>loc(p.lat,p.lon));
+        else if(w.nodes)pts=w.nodes.map(id=>nodes.get(id)).filter(Boolean).map(p=>loc(p.lat,p.lon));
+        else continue;
+        if(tags.highway && pts.length>=2){
+          roads.push(w.id);roadSegments.push({points:pts,width:roadWidth(tags)});
+        }
+        if(tags.building && pts.length>=3)makeBuilding(pts,osmHeight(tags,w.id),w.id);
+      }
+      if(!buildings.length && !roads.length)throw new Error('対象範囲の道路・建物が見つかりませんでした。');
+      completeLoad('osm',`OpenStreetMap実データ読込完了\n建物 ${buildings.length}件 / 道路 ${roadSegments.length}件\n※高さ未登録の建物は推定値・道路幅は概算`);
+      $('load-osm').classList.add('active');$('load-demo').classList.remove('active');
+    }
+    async function loadOSM(){
+      $('load-osm').disabled=true;setStatus('OpenStreetMapから福島駅周辺を取得中…\n混雑時は取得に失敗する場合があります。');
+      const latD=HALF/Z_FACTOR,lonD=HALF/X_FACTOR;
+      const bounds=[CENTER.lat-latD,CENTER.lon-lonD,CENTER.lat+latD,CENTER.lon+lonD].map(n=>n.toFixed(6)).join(',');
+      const q=`[out:json][timeout:25];(way["highway"](${bounds});way["building"](${bounds}););out geom;`;
+      const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+      let error=null;
+      try{
+        for(const endpoint of endpoints){
+          const abort=new AbortController();const timeout=setTimeout(()=>abort.abort(),18000);
+          try{
+            const res=await fetch(endpoint+'?data='+encodeURIComponent(q),{signal:abort.signal,mode:'cors',headers:{Accept:'application/json'}});
+            if(!res.ok)throw new Error(`Overpass HTTP ${res.status}`);
+            const data=await res.json();applyOSM(data);return;
+          }catch(e){error=e;}finally{clearTimeout(timeout);}
+        }
+        makeDemo();
+        setStatus('OSM取得に失敗しました。架空街区を操作できます。\n理由: '+(error?.message||'接続エラー')+'\n再試行、またはOSM JSONの手動読込をお試しください。','error');
+      }finally{$('load-osm').disabled=false;}
+    }
+    function setCam(next){cameraMode=next;for(const n of ['chase','cockpit','map','aerial'])$('cam-'+n).classList.toggle('active',n===next);}
+    function setMode(walk){walkMode=walk;vehicle.speed=0;$('mode-drive').classList.toggle('active',!walk);$('mode-walk').classList.toggle('active',walk);}
+    $('load-demo').addEventListener('click',makeDemo);
+    $('load-osm').addEventListener('click',loadOSM);
+    $('reset-car').addEventListener('click',()=>resetCar(true));
+    $('load-file').addEventListener('click',()=>$('osm-file').click());
+    $('osm-file').addEventListener('change',async(e)=>{
+      const file=e.target.files?.[0];if(!file)return;
+      try{applyOSM(JSON.parse(await file.text()));}catch(err){makeDemo();setStatus('JSON読み込みに失敗しました: '+err.message,'error');}
+      e.target.value='';
+    });
+    for(const name of ['chase','cockpit','map','aerial'])$('cam-'+name).addEventListener('click',()=>setCam(name));
+    $('mode-drive').addEventListener('click',()=>setMode(false));$('mode-walk').addEventListener('click',()=>setMode(true));
+    function keyOf(k){const a=k.toLowerCase();return ({arrowup:'w',arrowdown:'s',arrowleft:'a',arrowright:'d'})[a]||a;}
+    addEventListener('keydown',e=>{if(/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName))return;const k=keyOf(e.key);if(k in keys){keys[k]=true;e.preventDefault();}if(e.repeat)return;if(k==='r')resetCar();if(k==='c')setCam(['chase','cockpit','map','aerial'][(['chase','cockpit','map','aerial'].indexOf(cameraMode)+1)%4]);});
+    addEventListener('keyup',e=>{const k=keyOf(e.key);if(k in keys)keys[k]=false;});
+    addEventListener('blur',()=>{for(const k of Object.keys(keys))keys[k]=false;});
+    for(const el of document.querySelectorAll('[data-key]')){
+      const k=el.dataset.key;el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);keys[k]=true;});
+      el.addEventListener('pointerup',()=>keys[k]=false);el.addEventListener('pointercancel',()=>keys[k]=false);el.addEventListener('lostpointercapture',()=>keys[k]=false);
+    }
+    function updateVehicle(dt){
+      const max=walkMode?2.1:17;
+      if(keys.w)vehicle.speed+=(walkMode?4.2:7.5)*dt;
+      else if(keys.s)vehicle.speed-=(walkMode?4.2:10.5)*dt;
+      else vehicle.speed*=Math.pow(walkMode?.62:.87,dt*10);
+      vehicle.speed=THREE.MathUtils.clamp(vehicle.speed,walkMode?-2.1:-7,max);
+      const steer=(keys.a?1:0)-(keys.d?1:0);
+      if(walkMode){vehicle.h+=steer*dt*2.4;}
+      else {vehicle.h+=steer*(vehicle.speed/3.3)*Math.tan(.5)*dt;}
+      vehicle.x-=Math.sin(vehicle.h)*vehicle.speed*dt;vehicle.z-=Math.cos(vehicle.h)*vehicle.speed*dt;
+      vehicle.x=THREE.MathUtils.clamp(vehicle.x,-HALF+5,HALF-5);
+      vehicle.z=THREE.MathUtils.clamp(vehicle.z,-HALF+5,HALF-5);
+      car.visible=!walkMode;person.visible=walkMode;
+      car.position.set(vehicle.x,0.05,vehicle.z);car.rotation.y=vehicle.h;
+      person.position.set(vehicle.x,0,vehicle.z);person.rotation.y=vehicle.h;
+      $('speed').textContent=Math.round(Math.abs(vehicle.speed)*3.6);
+    }
+    const target=new THREE.Vector3(),desired=new THREE.Vector3();
+    function updateCamera(dt){
+      const s=Math.sin(vehicle.h),c=Math.cos(vehicle.h);target.set(vehicle.x,walkMode?1.4:1.3,vehicle.z);
+      if(cameraMode==='chase')desired.set(vehicle.x+s*(walkMode?7:15),walkMode?5:8.5,vehicle.z+c*(walkMode?7:15));
+      if(cameraMode==='cockpit')desired.set(vehicle.x-s*(walkMode?.3:.5),walkMode?1.7:1.47,vehicle.z-c*(walkMode?.3:.5));
+      if(cameraMode==='map')desired.set(vehicle.x,Math.max(60,Math.min(200,HALF*.25)),vehicle.z+.01);
+      if(cameraMode==='aerial')desired.set(vehicle.x+130,190,vehicle.z+190);
+      if(cameraMode==='cockpit'){
+        camera.position.lerp(desired,Math.min(1,dt*9));const view=new THREE.Vector3(vehicle.x-s*20,walkMode?1.65:1.5,vehicle.z-c*20);camera.lookAt(view);
+      }else{camera.position.lerp(desired,Math.min(1,dt*4.5));camera.lookAt(target);}
+    }
+    const mapctx=$('minimap').getContext('2d');
+    function updateMiniMap(){
+      const ctx=mapctx,W=340,H=300;ctx.clearRect(0,0,W,H);ctx.fillStyle='#142b3b';ctx.fillRect(0,0,W,H);
+      const zoom=.20;const px=x=>W/2+(x-vehicle.x)*zoom,pz=z=>H/2+(z-vehicle.z)*zoom;
+      ctx.fillStyle='#466376';for(const b of buildings){const w=Math.max(1,b.w*zoom),h=Math.max(1,b.h*zoom);ctx.fillRect(px(b.x)-w/2,pz(b.z)-h/2,w,h);}
+      ctx.strokeStyle='#9eb4bf';ctx.lineWidth=2;ctx.lineCap='round';for(const r of roadSegments){ctx.lineWidth=Math.max(.8,r.width*zoom);ctx.beginPath();r.points.forEach((p,i)=>{i?ctx.lineTo(px(p.x),pz(p.z)):ctx.moveTo(px(p.x),pz(p.z));});ctx.stroke();}
+      ctx.save();ctx.translate(W/2,H/2);ctx.rotate(vehicle.h);ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(7,7);ctx.lineTo(0,3);ctx.lineTo(-7,7);ctx.closePath();ctx.fillStyle='#63f4d3';ctx.fill();ctx.restore();
+      ctx.fillStyle='#cfdae5';ctx.font='12px sans-serif';ctx.fillText('N ↑',W-39,18);
+    }
+    let prev=performance.now();
+    function animate(t){requestAnimationFrame(animate);const dt=Math.min((t-prev)/1000,.06);prev=t;
+      updateVehicle(dt);updateCamera(dt);renderer.render(scene,camera);
+      frameCount++;fpsTime+=dt;if(fpsTime>.7){lastFps=Math.round(frameCount/fpsTime);$('fps').textContent=lastFps;frameCount=0;fpsTime=0;}
+      mapTime+=dt;if(mapTime>.15){mapTime=0;updateMiniMap();}
+    }
+    addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+    makeDemo();setCam('chase');camera.position.set(22,12,22);
+    requestAnimationFrame(animate);
+    // 最初は確実に動く架空街区を表示。実データは明示ボタンで取得（Overpassへの不要なアクセスを防ぐ）。
+    window.addEventListener('error',e=>{if(e.message?.includes('WebGL'))setStatus('この端末ではWebGLを利用できません。','error');});
+  </script>
+  <script>window.addEventListener('error',function(e){if(e.message&&(/Failed to resolve module|imported module|fetch dynamically imported/i).test(e.message)){document.getElementById('fatal').style.display='flex';}},true);</script>
+</body>
+</html>

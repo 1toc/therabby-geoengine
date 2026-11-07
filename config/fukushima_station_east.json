@@ -1,0 +1,11 @@
+{
+  "id": "fukushima-station-east-200m",
+  "name": "福島駅東口周辺（試験範囲・200m四方）",
+  "center_lat": 37.75445,
+  "center_lon": 140.46190,
+  "half_size_m": 100,
+  "plateau_city_code": "07201",
+  "plateau_year": 2025,
+  "city": "Fukushima, Japan",
+  "intended_use": "development preview, not clinical driving assessment"
+}

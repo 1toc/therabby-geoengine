@@ -1,0 +1,7 @@
+# regional source PBF is large; don't commit/download into repository
+data/*.osm.pbf
+data/*.partial
+# generated tiles may contain ODbL data; review attribution/license before public deployment
+# data/roads/*.geojson
+__pycache__/
+.pytest_cache/

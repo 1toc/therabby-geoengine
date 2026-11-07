@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GeoEngine | 福島駅東口 1km</title>
+  <style>
+    :root { font:14px system-ui,"Noto Sans JP",sans-serif; color:#eef5f2; background:#9bb6bd; }
+    * { box-sizing:border-box; } body { margin:0; }
+    #viewport { position:fixed; inset:0; overflow:hidden; }
+    canvas { display:block; width:100%; height:100%; }
+    aside { position:absolute; z-index:2; top:12px; left:12px; width:min(340px,calc(100vw - 24px)); max-height:calc(100vh - 24px); overflow:auto; padding:14px; border-radius:12px; background:#142b34ed; box-shadow:0 10px 30px #10232d70; }
+    h1 { margin:0 0 7px; font-size:19px; } p { margin:7px 0; line-height:1.5; }
+    .muted { color:#bdd1d4; font-size:12px; }
+    .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 0; }
+    button,select { border:1px solid #7ba8aa; border-radius:6px; padding:7px 9px; color:#fff; background:#245c65; font:inherit; }
+    button:hover,select:hover { background:#317482; } option { background:#245c65; }
+    #state,#perf,#benchmark-state { white-space:pre-line; font:12px/1.5 ui-monospace,Consolas,monospace; }
+    .tile { display:inline-block; padding:3px 6px; margin:2px; border-radius:4px; background:#455660; font:11px ui-monospace,monospace; }
+    .tile.loaded { background:#27654e; } .tile.loading { background:#8b6a28; }
+    .tile.current { outline:2px solid #d3ffe8; }
+    #tiles { max-height:100px; overflow:auto; }
+    details { border-top:1px solid #6a9295; margin-top:10px; padding-top:7px; }
+    summary { cursor:pointer; color:#d5e7e4; }
+    @media(max-width:600px) { aside { max-height:56vh; } }
+  </style>
+  <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/examples/jsm/"}}</script>
+</head>
+<body>
+  <div id="viewport"></div>
+  <aside>
+    <h1>福島駅東口｜連続1km</h1>
+    <p class="muted">実地図の道路・建物を運転席の高さから確認。中心部の外観を切替できます。</p>
+    <div class="row"><label>視点 <select id="view-mode"><option value="drive" selected>道路視点</option><option value="orbit">俯瞰</option></select></label><label>タイル <select id="tile-size"><option>100</option><option selected>250</option><option>500</option></select> m</label><label>中心部 <select id="quality"><option value="low" selected>明瞭な描画外観</option><option value="high">写真参考LOD2（旧）</option></select></label></div>
+    <div class="row"><button id="tour">道路沿いデモ移動</button><button id="stop">停止</button><button id="reset">開始地点</button><button id="overview">全景</button></div>
+    <p id="state">地図を読み込み中…</p>
+    <p class="muted">公式道路範囲とDEM5A地表高を表示。車道幅・舗装・外壁は推定。高架路面・車線・通行可否・車両物理は未提供。</p>
+    <details id="diagnostics"><summary>計測・タイル情報・出典</summary>
+      <div class="row"><button id="benchmark">10分計測開始</button><button id="benchmark-stop">計測停止・保存</button></div>
+      <p id="benchmark-state" class="muted">計測待機中</p>
+      <div id="tiles"></div><p id="perf"></p>
+      <p class="muted">道路視点は道路中心線上の約1.6mから前方を表示します。俯瞰ではドラッグ・ホイール・矢印キーで見回せます。</p>
+      <p class="muted">旧・写真参考LOD2は建物ごとの基部をDEM地形に再配置していません。地形整合は初期表示の描画外観で確認してください。</p>
+      <p class="muted">© OpenStreetMap contributors / ODbL 1.0 ｜ Project PLATEAU / 福島市 ｜ 国土地理院 DEM5A</p>
+    </details>
+  </aside>
+  <script type="module" src="./wide-preview.js"></script>
+</body>
+</html>

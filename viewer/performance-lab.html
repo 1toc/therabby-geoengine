@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GeoEngine | 画質・性能比較</title>
+  <style>
+    :root { font: 14px system-ui,"Noto Sans JP",sans-serif; color:#edf4f5; background:#9fb3bb; }
+    * { box-sizing:border-box; }
+    body { margin:0; }
+    #viewport { position:fixed; inset:0; }
+    canvas { display:block; }
+    aside { position:absolute; z-index:2; top:12px; left:12px; width:min(370px,calc(100vw - 24px)); max-height:calc(100vh - 24px); overflow:auto; background:#142731eb; padding:15px; border-radius:12px; box-shadow:0 10px 30px #12222c66; }
+    h1 { margin:0 0 7px; font-size:18px; }
+    p { margin:5px 0 10px; line-height:1.45; }
+    .muted { color:#b5ccd1; font-size:12px; }
+    .group { display:flex; gap:6px; flex-wrap:wrap; margin:9px 0; }
+    button { background:#245f66; border:1px solid #72a6a3; color:white; padding:7px 9px; border-radius:6px; cursor:pointer; font:inherit; }
+    button:hover { background:#347981; }
+    button:disabled { opacity:.45; cursor:default; }
+    button.active { background:#b6e9dc; color:#103137; }
+    #metrics, #report { white-space:pre-wrap; font:12px/1.45 ui-monospace,Consolas,monospace; margin:8px 0; }
+    #report { max-height:120px; overflow:auto; color:#d5e8d4; }
+    #status { color:#f1e0a2; }
+    label { display:block; margin:8px 0; }
+    @media (max-width:600px) { aside { max-height:56vh; } }
+  </style>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/"}}</script>
+</head>
+<body>
+  <div id="viewport"></div>
+  <aside>
+    <h1>福島駅東口｜画質・性能比較</h1>
+    <p class="muted">同じカメラ・照明・画角で1版ずつ表示。AIで描き直した細部は現地確認済みではありません。</p>
+    <div class="group" id="models">
+      <button data-model="photo">元写真</button>
+      <button data-model="redrawn">全棟描き直し</button>
+      <button data-model="optimized">軽量化版</button>
+      <button data-model="crisp">近景修正版</button>
+    </div>
+    <div class="group">
+      <button id="reset">同じ全景視点</button><button id="street">同じ地上視点</button>
+      <button id="bench">30秒計測</button><button id="download" disabled>結果JSON保存</button>
+    </div>
+    <label>描画倍率 <select id="scale"><option value="1">1.0（軽量）</option><option value="1.5">1.5</option><option value="2">2.0（高画質）</option></select></label>
+    <label><input type="checkbox" id="show-metrics" checked> 計測情報を表示</label>
+    <p id="status">読み込み中…</p>
+    <div id="metrics"></div><div id="report"></div>
+    <p class="muted">ドラッグ: 回転／ホイール: ズーム／右ドラッグ: 移動。30秒計測は同じ軌道を自動移動し、最初の5秒を静止区間として記録します。ほかのタブやウィンドウ状態で数値は変わります。</p>
+    <p class="muted"><a href="./tiled-preview.html" style="color:#b6e9dc">4タイルの動的読込を試す</a></p>
+    <p class="muted">© OpenStreetMap contributors / ODbL 1.0 ｜ Project PLATEAU / 福島市</p>
+  </aside>
+  <script type="module" src="./performance-lab.js"></script>
+</body>
+</html>

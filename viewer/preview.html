@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Therabby GeoEngine | M1 Preview</title>
+<style>
+:root{font:14px system-ui,"Noto Sans JP",sans-serif;color:#eaf2ff;background:#111c28}*{box-sizing:border-box}body{margin:0}canvas{display:block}main{position:fixed;inset:0}header{position:absolute;top:16px;left:16px;width:min(390px,calc(100vw - 32px));z-index:2;background:#0d1723dd;border:1px solid #3b5365;border-radius:14px;padding:16px;box-shadow:0 12px 50px #0006}h1{font-size:17px;margin:0 0 3px}.sub{color:#a6c4d8;font-size:12px;margin:0 0 15px}.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.btn{border:1px solid #58718c;border-radius:8px;background:#244b55;color:white;font:inherit;padding:8px 10px;cursor:pointer}.btn:hover{background:#31616c}.note{font-size:12px;color:#b7cfda;line-height:1.6}#stats,#status{font:12px/1.5 ui-monospace,Consolas,monospace;white-space:pre-line}#status{color:#c0eadf}.key{font-size:11px;color:#99b4c5}input[type=file]{display:none}#bottom{position:absolute;bottom:10px;left:16px;right:16px;font-size:11px;color:#d0e6f1;background:#0d1723cc;padding:8px 12px;border-radius:9px;pointer-events:none}a{color:#8edadd}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/"}}</script>
+</head><body><main id="viewport"></main>
+<header><h1>THERABBY / GEOENGINE <small> M1</small></h1><p class="sub">実データ変換の確認ビューア（運転機能なし）</p>
+<div class="row"><button class="btn" id="open">map.json を開く</button><button class="btn" id="reset">視点リセット</button><input id="file" type="file" accept=".json,application/json"/></div>
+<p class="note"><code>dist/demo/map.json</code> は<strong>架空の試験データ</strong>です。現在の地図の品質と出典は下の表示で確認できます。</p>
+<div id="status">ファイルを読み込んでください。</div><div id="stats">—</div><p class="key">ドラッグ：視点回転　ホイール：ズーム　右ドラッグ：平行移動</p>
+</header><div id="bottom">地図データ出典は読込ファイルのprovenanceで確認 ｜ 臨床評価には使用不可 ｜ Three.js CDNへの通信が必要</div>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const viewport=document.getElementById('viewport'),status=document.getElementById('status'),stats=document.getElementById('stats');
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x90abc3);scene.fog=new THREE.Fog(0x90abc3,250,650);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1200);camera.position.set(120,110,160);
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio,1));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;viewport.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.maxPolarAngle=Math.PI*.48;controls.update();
+scene.add(new THREE.HemisphereLight(0xe7f5ff,0x76918d,2));const sun=new THREE.DirectionalLight(0xffe9c7,2);sun.position.set(-50,120,60);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(1200,1200),new THREE.MeshLambertMaterial({color:0x78998c}));ground.rotation.x=-Math.PI/2;ground.position.y=-.09;scene.add(ground);
+const root=new THREE.Group();scene.add(root);
+const roadmat=new THREE.MeshLambertMaterial({color:0x364a57,side:THREE.DoubleSide}),edgemat=new THREE.MeshLambertMaterial({color:0x728d96,side:THREE.DoubleSide}),buildingmat=new THREE.MeshLambertMaterial({color:0xaac3d0});
+function clear(){root.traverse(obj=>{if(obj.geometry)obj.geometry.dispose()});root.clear()}
+function roadGeometry(roads,widthAdd=0,y=.03){const verts=[];for(const road of roads){const pts=road.points,w=road.width_m+widthAdd;for(let i=1;i<pts.length;i++){const [ax,az]=pts[i-1],[bx,bz]=pts[i],dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz);if(len<.01)continue;const nx=-dz/len*w/2,nz=dx/len*w/2;verts.push(ax+nx,y,az+nz,ax-nx,y,az-nz,bx+nx,y,bz+nz,bx+nx,y,bz+nz,ax-nx,y,az-nz,bx-nx,y,bz-nz)}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.computeVertexNormals();return g}
+function renderMap(map){if(map.schema!=='therabby.geoengine.map.v0.1')throw new Error('未対応map schema');clear();const edges=new THREE.Mesh(roadGeometry(map.roads,1.5,.009),edgemat),roads=new THREE.Mesh(roadGeometry(map.roads,0,.03),roadmat);root.add(edges,roads);
+for(const b of map.buildings){const pts=b.footprint;if(pts.length<3)continue;const shape=new THREE.Shape();shape.moveTo(pts[0][0],-pts[0][1]);for(const [x,z] of pts.slice(1))shape.lineTo(x,-z);shape.closePath();const g=new THREE.ExtrudeGeometry(shape,{depth:b.height_m,bevelEnabled:false,curveSegments:1});g.rotateX(-Math.PI/2);root.add(new THREE.Mesh(g,buildingmat))}
+const a=map.area;const quality=map.data_quality==='SYNTHETIC_TEST_FIXTURE'?'⚠ 架空の試験データ：実在の福島市ではありません':'⚠ 実データの位置・高さは未検証です';status.textContent=`${quality}\n読込成功：${a.name||a.id}\n建物のLODはシーン情報で確認してください。`;stats.textContent=`建物 ${map.buildings.length} / 道路 ${map.roads.length}\nデータ源：${map.provenance.map(p=>p.name).join(', ')}\n出典・ライセンス：${map.provenance.map(p=>p.attribution+' / '+p.license).join('; ')}\n性能測定は実機で実施してください`;camera.position.set(115,100,150);controls.target.set(0,0,0);controls.update();}
+document.getElementById('open').addEventListener('click',()=>document.getElementById('file').click());document.getElementById('file').addEventListener('change',async e=>{try{const file=e.target.files[0];if(!file)return;renderMap(JSON.parse(await file.text()))}catch(err){status.textContent='読込エラー: '+err.message}});
+const preset=new URLSearchParams(location.search).get('map');
+if(preset){const files={real:'../dist/real/fukushima-east/map.json',demo:'../dist/demo/map.json'};if(!(preset in files)){status.textContent='未対応の地図IDです';}else{status.textContent='地図を読み込み中…';fetch(files[preset]).then(response=>{if(!response.ok)throw new Error(`HTTP ${response.status}`);return response.json()}).then(renderMap).catch(err=>{status.textContent='読込エラー: '+err.message})}}
+document.getElementById('reset').addEventListener('click',()=>{camera.position.set(115,100,150);controls.target.set(0,0,0);controls.update()});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+let last=performance.now(),frames=0,interval=0;function tick(now){requestAnimationFrame(tick);controls.update();renderer.render(scene,camera);frames++;if(now-last>1000){interval=frames*1000/(now-last);frames=0;last=now;const base=stats.textContent.split('\nFPS')[0];if(base!=='—')stats.textContent=base+`\nFPS ${Math.round(interval)} / draw calls ${renderer.info.render.calls}`}}requestAnimationFrame(tick);
+</script></body></html>

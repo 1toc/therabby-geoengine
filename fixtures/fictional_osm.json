@@ -1,0 +1,10 @@
+{
+ "version":0.6,
+ "generator":"synthetic M1 test fixture - NOT ACTUAL FUKUSHIMA OSM DATA",
+ "elements":[
+  {"type":"way","id":100,"tags":{"highway":"residential","name":"TEST East-West road"},"geometry":[{"lat":37.75445,"lon":140.46095},{"lat":37.75445,"lon":140.46290}]},
+  {"type":"way","id":101,"tags":{"highway":"secondary","oneway":"yes","name":"TEST North-South road"},"geometry":[{"lat":37.7554,"lon":140.4619},{"lat":37.7535,"lon":140.4619}]},
+  {"type":"way","id":201,"tags":{"building":"yes","height":"14 m"},"geometry":[{"lat":37.75475,"lon":140.46215},{"lat":37.75475,"lon":140.46245},{"lat":37.75458,"lon":140.46245},{"lat":37.75458,"lon":140.46215},{"lat":37.75475,"lon":140.46215}]},
+  {"type":"way","id":202,"tags":{"building":"yes","building:levels":"3"},"geometry":[{"lat":37.75422,"lon":140.46145},{"lat":37.75422,"lon":140.46170},{"lat":37.75400,"lon":140.46170},{"lat":37.75400,"lon":140.46145},{"lat":37.75422,"lon":140.46145}]}
+ ]
+}

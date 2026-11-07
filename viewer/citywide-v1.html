@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b202a">
+  <title>Therabby GeoEngine | 福島市 3D地図</title>
+  <style>
+    :root{font:14px/1.5 system-ui,"Noto Sans JP",sans-serif;color:#e8f4f0;background:#0b202a}*{box-sizing:border-box}body{margin:0}
+    #app{display:grid;grid-template-columns:330px minmax(0,1fr);height:100vh}aside{overflow:auto;padding:20px;background:#0c2730;border-right:1px solid #31505a}
+    .brand{font-size:10px;letter-spacing:.22em;font-weight:800;color:#82dbb3}.version{float:right;color:#9bc7c1;border:1px solid #36545d;border-radius:5px;padding:2px 6px}
+    h1{font-size:29px;line-height:1.24;margin:21px 0 8px}.sub{font-size:12px;color:#a5c3c6;margin:0 0 18px}
+    section{border-top:1px solid #30505a;padding-top:15px;margin-top:17px}h2{font-size:11px;color:#86cbb6;letter-spacing:.14em;margin:0 0 11px}
+    label{display:block;color:#bcd6d5;font-size:12px;margin:11px 0 5px}input,select,button{font:inherit}input,select{width:100%;border:1px solid #41626a;border-radius:7px;background:#14353e;color:#effcf7;padding:9px 10px}
+    input::placeholder{color:#8cb1b6}.row{display:flex;gap:7px}.row>*{min-width:0;flex:1}button{cursor:pointer;border:1px solid #438371;border-radius:7px;background:#1c5b50;color:#f0fff9;padding:9px 12px}button:hover{background:#267263}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #9be9bd;outline-offset:2px}
+    .secondary{border-color:#41626a;background:#173c46}.secondary:hover{background:#24515a}#redownload{display:block;text-align:center;text-decoration:none;padding:9px 12px;border:1px solid #41626a;border-radius:7px;color:#f0fff9}#redownload[hidden],#measurement-json[hidden]{display:none}#measurement-json textarea{width:100%;min-height:200px;color:#e8f4f0;background:#102c35;border:1px solid #41626a}#measurement-json summary{cursor:pointer;color:#a5e3d2}.switch{display:flex;align-items:center;gap:8px}.switch input{width:auto;accent-color:#8be4b7}
+    .stat{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #2c4650;padding:7px 0;color:#aac6c7;font-size:11px}.stat strong{color:#f3fff8;text-align:right;font-weight:600}
+    #compare-image[hidden],#compare-save[hidden],#compare-json[hidden]{display:none}#compare-save,#compare-json{padding:8px 10px;border:1px solid #41626a;border-radius:7px;color:#e8f4f0;text-decoration:none;font-size:11px}
+    #status{border:1px solid #42615e;background:#173c40;border-radius:8px;padding:10px;color:#d7f2e7;font-size:12px;min-height:62px;white-space:pre-line}#status.error{border-color:#a66659;color:#ffbeb4}
+    .fine{color:#a4bbc1;font-size:11px;line-height:1.55}.fine a{color:#a5e3d2}main{position:relative;min-width:0;overflow:hidden}canvas{display:block;width:100%;height:100%}
+    .overlay{position:absolute;pointer-events:none;background:#0c2932d9;border:1px solid #31505a;border-radius:7px;padding:8px 11px;font-size:11px}.top{top:14px;left:14px;letter-spacing:.12em;font-weight:700}.top span{color:#7ed8b1}.bottom{bottom:12px;left:14px;max-width:calc(100% - 28px);line-height:1.55;color:#c6dbda}
+    #app.measurement{grid-template-columns:minmax(0,1fr)}#app.measurement aside{display:none}#app.measurement main{display:flex;align-items:center;justify-content:center}#app.measurement canvas{width:min(100%,177.777vh);height:auto}#measure-stop{display:none;position:absolute;right:14px;top:14px;z-index:3}#app.measurement #measure-stop{display:block}
+    @media(max-width:700px){#app{display:flex;flex-direction:column}aside{height:34vh;flex:none;padding:12px 14px;border-right:0;border-bottom:1px solid #31505a}h1{font-size:19px;margin:8px 0 2px}.sub{display:none}section{margin-top:9px;padding-top:9px}main{flex:1;min-height:0}.top{top:8px;left:8px}}
+  </style>
+  <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/examples/jsm/"}}</script>
+</head>
+<body>
+  <div id="app">
+    <aside>
+      <div class="brand">THERABBY / GEOENGINE <span class="version">v1.0 開発中</span></div>
+      <h1>福島市 3D地図</h1>
+      <p class="sub">公式PLATEAU建物・区域外のOSM補完建物・DEM5A地表・OSM道路を同じ投影座標で重ねた全市タイル表示</p>
+      <section>
+        <h2>場所を選ぶ</h2>
+        <label for="region">地域</label>
+        <select id="region"><option value="station">福島駅周辺</option><option value="iizaka">飯坂周辺</option><option value="hanamiyama">花見山周辺</option><option value="tsuchiyu">土湯周辺</option></select>
+        <label for="search">道路名 または 緯度, 経度</label>
+        <div class="row"><input id="search" list="road-names" placeholder="例: 国道13号 / 37.7548, 140.4597"><button id="go">移動</button></div>
+        <datalist id="road-names"></datalist>
+        <p id="search-hint" class="fine">道路名はOSM線分上の代表点へ移動します。建物名検索は未収録です。</p>
+      </section>
+      <section>
+        <h2>表示と操作</h2>
+        <div class="row"><button id="overview">俯瞰</button><button id="ground" class="secondary">地上</button></div>
+        <button id="walk" class="secondary" style="width:100%;margin-top:8px" disabled>駅前を歩く</button>
+        <p class="fine" id="walk-status">歩行中はWASDで小走り、画面をドラッグして視点変更します。Shiftで加速。</p>
+        <button id="stream-settings-toggle" class="secondary" type="button" hidden>写真の詳細設定を表示</button>
+        <button id="road-tour" class="secondary" style="width:100%;margin-top:8px">OSM道路線に沿って移動</button>
+        <label for="quality">画質</label>
+        <select id="quality"><option value="light">Low（軽量）</option><option value="standard">Medium（標準）</option><option value="high">High（高画質）</option></select>
+        <label class="switch"><input id="station-photo" type="checkbox">駅東口300mの公式写真付きLOD2を表示</label>
+        <label for="station-style">駅前の建物の見た目</label>
+        <select id="station-style"><option value="photo">公式写真</option><option value="sharp">公式写真を鮮明化（駅前全体）</option><option value="clean">シンプルな建物（推定）</option></select>
+        <label for="station-sharpness">鮮明さ（強くするとノイズも目立ちます）</label>
+        <input id="station-sharpness" type="range" min="0" max="2" step="0.25" value="1.5">
+        <p class="fine">鮮明化は駅前の公式写真に共通の輪郭補正をかけます。Low画質では負荷を抑えるため鮮明化を停止します。元写真に写っていない細部は復元できません。シンプル表示の窓は推定です。</p>
+        <label for="photo-detail">駅前写真の解像度</label>
+        <select id="photo-detail"><option value="auto">画質モードに連動</option><option value="low">Low・最大512px</option><option value="medium">Medium・最大1024px</option><option value="high">元JPEG・最大4096px（メモリ多）</option></select>
+        <label for="photo-anisotropy">写真の斜め方向フィルタ</label>
+        <select id="photo-anisotropy"><option value="auto">画質モードに連動（駅前は最大8倍）</option><option value="4">4倍</option><option value="8">8倍（GPU上限まで）</option></select>
+        <label for="photo-filter">写真の縮小フィルタ</label>
+        <select id="photo-filter"><option value="mipmap">ミップマップ・線形補間</option><option value="linear">線形補間のみ（比較用）</option></select>
+        <label class="switch"><input id="building-texture" type="checkbox" checked>建物の公式写真テクスチャ</label>
+        <label class="switch"><input id="building-lod" type="checkbox">建物LOD情報</label>
+        <label class="switch"><input id="roads" type="checkbox" checked>道路面を表示</label>
+        <label class="switch"><input id="road-polygon" type="checkbox" checked>駅前PLATEAU道路外形</label>
+        <label class="switch"><input id="road-surface" type="checkbox" checked>アスファルト表面の質感</label>
+        <label class="switch"><input id="road-guides" type="checkbox" checked>道路の目安線（推定）</label>
+        <p class="fine">目安線はOSM中心線と推定幅から描いた案内用の線です。実際の白線・車線境界ではありません。明るい道路面はOSMの歩行者用道路を示します。駅前の灰色の地表は仮の色で、実際の舗装や歩道の位置を示すものではありません。</p>
+        <label class="switch"><input id="road-centerline" type="checkbox">OSM道路中心線</label>
+        <label class="switch"><input id="road-height" type="checkbox">道路と地形の高さ比較</label>
+        <p id="lod-info" class="fine" hidden>駅前は公式LOD2写真建物、その他の公式建物はLOD1です。写真のない面は単色です。</p>
+        <p id="height-info" class="fine" hidden>駅前のPLATEAU外形は表示地形 +0.08m、OSM概略道路面は +0.12m（表示上の重なり防止）。実路面高は未取得です。</p>
+        <p class="fine">ドラッグで回転、ホイールで拡大、右ドラッグで移動。WASDで視線方向へ移動、矢印キーで地点を150m移動します。道路追従は表示試験であり、合法走行の案内ではありません。</p>
+      </section>
+      <section>
+        <h2>読み込み・性能</h2>
+        <div id="status" role="status">データ目録を読み込み中…</div>
+        <div class="stat"><span>表示タイル</span><strong id="tile-count">—</strong></div>
+        <div class="stat"><span>表示建物</span><strong id="building-count">—</strong></div>
+        <div class="stat"><span>駅前LOD2写真</span><strong id="photo-count">—</strong></div>
+        <div class="stat"><span>道路線分</span><strong id="road-count">—</strong></div>
+        <div class="stat"><span>FPS / p95</span><strong id="fps">—</strong></div>
+        <div class="stat"><span>draw calls / 三角形</span><strong id="draws">—</strong></div>
+        <div class="stat"><span>描画バッファ</span><strong id="buffer-size">—</strong></div>
+        <div class="stat"><span>写真GPUメモリ理論値</span><strong id="texture-memory">—</strong></div>
+        <div class="stat"><span>GPUテクスチャ数</span><strong id="gpu-texture-count">—</strong></div>
+        <div class="stat"><span>読み込み失敗 / 表示GLB</span><strong id="load-stats">—</strong></div>
+        <button id="compare-photo" class="secondary" style="width:100%;margin-top:12px">写真Low/元JPEGを同じ視点で比較</button>
+        <p class="fine">各3秒の開発環境計測と画面画像を作ります。元JPEGは写真だけで理論上約890MiB必要です。</p>
+        <div id="compare-result" class="fine" role="status"></div>
+        <img id="compare-image" alt="同じ視点の写真Lowと元JPEGの比較" style="width:100%;margin-top:8px" hidden>
+        <a id="compare-save" class="secondary" style="display:block;margin-top:8px" hidden>比較PNGを保存</a>
+        <a id="compare-json" class="secondary" style="display:block;margin-top:8px" hidden>比較計測JSONを保存</a>
+        <button id="measure" class="secondary" style="width:100%;margin-top:12px">10分測定を開始</button>
+        <div id="benchmark-result" class="fine" role="status" hidden></div>
+        <a id="redownload" class="secondary" style="width:100%;margin-top:8px" hidden>直前の測定JSONを再保存</a>
+        <details id="measurement-json" class="fine" style="margin-top:8px" hidden><summary>保存できない場合は測定JSONを表示</summary><textarea id="measurement-json-text" readonly aria-label="測定JSON"></textarea></details>
+        <p class="fine">測定開始で描画バッファを1280×720・軽量モードに固定し、OSM道路線を自動追従します。終了時にGPU・フレーム時間・停止回数をJSON保存します。<code>?benchmark=1</code> で目録・道路の読込後に自動開始できます。基準PC以外の結果は受入合格に使いません。<a href="../docs/V1_ACCEPTANCE_PROCEDURE.md">受入手順</a></p>
+      </section>
+      <section>
+        <h2>データの意味</h2>
+        <p class="fine">緑の近景建物はProject PLATEAU / 福島市 2025 LOD1です。駅東口LOD2を選ぶと、対象300m内の該当LOD1を除いて、公式写真UV付きの2025 LOD2に置き換えます。高さはDEM5A地表標高に対する表示用の合わせ込みで、測量済みの建物基礎高ではありません。写真がない面は単色材質です。公式の整備範囲は都市計画区域の174.6km²で、市域全体ではありません。対象メッシュ外の茶色い建物は© OpenStreetMap contributors / ODbL 1.0の足形を補完表示したもので、高さはタグまたは概略推定です。</p>
+        <p class="fine">緑の遠景は公式建物を50m区画に集約した概略形状です。地表は国土地理院DEM5AのT.P.標高で、欠損・未公開部分は穴として残します。</p>
+        <p class="fine">駅東口300mの道路外形はProject PLATEAU / 福島市2025のtran LOD1です。車道・歩道境界は分離されていません。アスファルト面は© OpenStreetMap contributors / ODbL 1.0の中心線に推定幅を付けた視覚表現です。細かな質感も生成画像で、実写の路面写真ではありません。道路面高・合法走行可能性・物理衝突用形状は未確認です。橋・トンネルは地表上の道路面として塗りません。</p>
+        <p class="fine">地形は地理院タイルDEM5Aを加工して作成。<a href="https://www.city.fukushima.fukushima.jp/soshiki/12/1059/1/12474.html" target="_blank" rel="noopener">福島市の整備範囲</a>、<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSMのODbL</a>、<a href="https://web2.gsi.go.jp/kikakuchousei/kikakuchousei40182.html" target="_blank" rel="noopener">国土地理院の利用規約</a>、<a href="../docs/CITYWIDE_ATTRIBUTION.md">加工記録</a>。</p>
+        <p class="fine">出典・配布条件の確認、測量点との照合、基準PCでの性能合格判定は未完了です。</p>
+      </section>
+    </aside>
+    <main id="viewport" aria-label="福島市全域の3D地図">
+      <div class="overlay top">FUKUSHIMA <span>/ EPSG:6677 · T.P.</span></div>
+      <button id="measure-stop" class="secondary">測定を終了して保存</button>
+      <div class="overlay bottom">公式建物・写真・駅前道路外形: PLATEAU / 福島市　 補完建物・概略道路面: © OpenStreetMap contributors　 地表: © 国土地理院</div>
+    </main>
+  </div>
+  <script type="module" src="./citywide-v1.js"></script>
+</body>
+</html>

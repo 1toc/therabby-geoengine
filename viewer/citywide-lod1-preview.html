@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071a24">
+  <title>Therabby GeoEngine | 福島市 PLATEAU LOD1</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <style>
+    :root{font:14px system-ui,"Noto Sans JP",sans-serif;color:#eef5f2;background:#081d27}*{box-sizing:border-box}body{margin:0}#app{height:100vh;display:grid;grid-template-columns:330px 1fr}.panel{padding:20px 18px;background:#0c2631;overflow:auto;border-right:1px solid #24414a}.brand{font-size:11px;letter-spacing:.18em;color:#88cbb6;font-weight:800}.eyebrow{margin-top:28px;font-size:10px;letter-spacing:.2em;color:#79c9b3}.panel h1{font-size:27px;line-height:1.35;margin:9px 0}.sub{color:#a6c0c6;line-height:1.65;font-size:12px}.card{border:1px solid #294954;background:#12313a;border-radius:10px;padding:13px;margin:17px 0}.card b{font-size:13px}.stat{display:flex;justify-content:space-between;border-bottom:1px solid #29444c;padding:9px 0;font-size:11px;color:#a9c4cb}.stat strong{color:#edf8f3;text-align:right;margin-left:8px}.button{display:block;width:100%;border:1px solid #36716c;background:#174c4a;color:#effff9;border-radius:7px;padding:10px;margin:8px 0;font:inherit;text-align:center;cursor:pointer;text-decoration:none}.button:hover{background:#226561}.toggle{display:flex;align-items:center;gap:9px;margin:13px 0;font-size:12px}.toggle input{accent-color:#76d9b2;width:16px;height:16px}.note{padding:11px;border-radius:7px;background:#192f38;color:#b5cbd0;font-size:11px;line-height:1.6}.note.warn{color:#ffd998}.note.error{color:#ffb6a8}.map-shell{position:relative;min-width:0}#map{position:absolute;inset:0}.top{position:absolute;top:16px;left:18px;z-index:2;padding:9px 12px;border-radius:7px;background:#102b35e8;font-size:11px;letter-spacing:.15em}.top span{color:#7dceb4}.attribution-note{position:absolute;bottom:28px;left:12px;z-index:2;background:#102b35df;padding:6px 8px;border-radius:5px;color:#c4d8d8;font-size:10px;pointer-events:none}.loading{position:absolute;inset:0;z-index:4;display:grid;place-content:center;background:#0c2631;color:#dff4ed;text-align:center}.loading.hidden{display:none}.loading p{color:#91afb7;font-size:12px}@media(max-width:700px){#app{grid-template-columns:1fr;grid-template-rows:minmax(190px,34vh) 1fr}.panel{grid-row:1;padding:12px 14px;border-right:0;border-bottom:1px solid #24414a}.brand{font-size:9px}.eyebrow{margin-top:10px}h1{font-size:20px!important;margin:4px 0!important}.sub{display:none}.card{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;padding:8px;margin:8px 0}.card b{grid-column:1/-1}.stat{padding:5px 0}.button{display:inline-block;width:calc(50% - 6px);padding:7px;margin:5px 2px}.toggle{display:inline-flex;margin:7px 10px 3px 0}.note{padding:7px}.map-shell{grid-row:2;min-height:0}.top{top:8px;left:8px;font-size:9px}}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside class="panel">
+      <div class="brand">THERABBY / GEOENGINE</div>
+      <div class="eyebrow">CITYWIDE DATA / STEP 1-3</div>
+      <h1>福島市<br>PLATEAU LOD1</h1>
+      <p class="sub">公式CityGMLの建物フットプリントと高さを、市境に沿って1km単位で表示します。</p>
+      <div class="card"><b>データ収録状況</b>
+        <div class="stat"><span>建物</span><strong id="building-count">読込中</strong></div>
+        <div class="stat"><span>空間タイル</span><strong id="tile-count">—</strong></div>
+        <div class="stat"><span>DEM5A基部標高</span><strong id="terrain-count">—</strong></div>
+        <div class="stat"><span>座標系</span><strong>EPSG:6677</strong></div>
+        <div class="stat"><span>標高基準</span><strong>T.P.</strong></div>
+      </div>
+      <a class="button" href="../modules/city-boundary/index.html">← 境界・道路画面</a>
+      <button class="button" id="station">福島駅周辺を表示</button>
+      <button class="button" id="city">市域全体を見る</button>
+      <label class="toggle"><input id="buildings" type="checkbox" checked><span>建物の3D形状を表示</span></label>
+      <div class="stat"><span>表示中タイル</span><strong id="loaded-tiles">0</strong></div>
+      <div class="stat"><span>表示中建物</span><strong id="visible-buildings">0</strong></div>
+      <p id="status" class="note">タイル一覧を読み込んでいます…</p>
+      <p class="note">建物の形状・高さは公式LOD1です。基部はGSI DEM5Aの5m地形高を建物フットプリントの代表点で補間した値です。欠損11棟は非表示です。地表高は基礎高や道路面高を示しません。</p>
+      <p class="note">地形タイルは建物の標高サンプル地点向け225枚のみです。市域全体の連続地形と道路面標高は未収録です。</p>
+      <p class="note">© Project PLATEAU / 福島市　|　地図 © 国土地理院</p>
+    </aside>
+    <main class="map-shell"><div id="map" aria-label="福島市全域のLOD1建物3D地図"></div>
+      <div class="top">FUKUSHIMA CITY <span>/ OFFICIAL LOD1 BUILDINGS</span></div>
+      <div class="attribution-note">建物：PLATEAU 2025 · 高さ・基部標高の品質情報を左パネルに表示</div>
+      <div class="loading" id="loading"><div>GEOGRAPHY INITIALIZING</div><p>公式境界と建物タイルを準備しています…</p></div>
+    </main>
+  </div>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="./citywide-lod1-preview.js" defer></script>
+</body>
+</html>

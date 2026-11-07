@@ -1,0 +1,7 @@
+{
+  "schema": "therabby.geoengine.survey-anchors.v0.1",
+  "horizontal_crs": "JGD2011 geographic (EPSG:6668)",
+  "vertical_datum": "T.P. (Tokyo Peil)",
+  "status": "template_only_no_survey_data",
+  "anchors": []
+}

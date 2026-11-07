@@ -1,0 +1,11 @@
+name: M1 Python tests
+on: [push, pull_request]
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Test conversion with synthetic fixtures (full dataset not included)
+        run: python -m unittest discover -s tests -p test_geoengine.py -v
