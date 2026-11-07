@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Therabby GeoEngine | 手続き生成デモ</title>
+  <style>
+    :root{font:14px/1.5 system-ui,"Noto Sans JP",sans-serif;color:#edf4ee;background:#101c28}
+    *{box-sizing:border-box}body{margin:0}#app{display:grid;grid-template-columns:310px minmax(0,1fr);height:100vh}
+    aside{padding:22px;background:#172b34;overflow:auto;border-right:1px solid #35515b}
+    h1{font-size:25px;line-height:1.22;margin:15px 0}h2{font-size:13px;color:#a8dcc8}
+    p{color:#bdcbcc}small{color:#abc4c5}label{display:block;margin:18px 0 7px}
+    input[type=range]{width:100%}button,a.button{font:inherit;display:inline-block;padding:9px 12px;color:#eafff4;text-decoration:none;border:1px solid #64877c;border-radius:7px;background:#225b51;cursor:pointer}
+    input[type=checkbox]{accent-color:#78e9ad}#clock{font-weight:700}main{position:relative;min-width:0;overflow:hidden}
+    canvas{display:block}#label{position:absolute;left:15px;top:15px;pointer-events:none;color:#d3e1df;background:#112b31d8;padding:10px;border-radius:8px;font-size:12px}
+    #error{color:#ffab9c;white-space:pre-wrap}
+    @media(max-width:720px){#app{display:flex;flex-direction:column}aside{max-height:43vh;padding:14px}main{flex:1}}
+  </style>
+  <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/examples/jsm/"}}</script>
+</head>
+<body>
+  <div id="app">
+    <aside>
+      <small>THERABBY / GEOENGINE — PROCEDURAL PREVIEW</small>
+      <h1>手続き生成の街並み</h1>
+      <p><strong>架空の道路と建物</strong>を使った、オフラインで動作する技術デモです。福島市の実地図ではありません。</p>
+      <label><input type="checkbox" id="mode" checked> 外壁・窓と推定路面標示</label>
+      <label for="hour">時間帯の演出 <span id="clock">14:00</span></label>
+      <input type="range" id="hour" min="5" max="23" step=".5" value="14">
+      <label><input type="checkbox" id="cars" checked> 装飾用の車を動かす</label>
+      <p><button type="button" id="reset">視点を戻す</button></p>
+      <p><small>ドラッグで回転、ホイールで拡大。建物の窓は同じGLB外壁材質にも適用できるシェーダーで描いています。車・信号・車線は実物の交通を再現しません。</small></p>
+      <p><a class="button" href="./citywide-v1.html?procedural=1">福島市ビューア（実データ要）</a></p>
+      <p id="error" role="status"></p>
+    </aside>
+    <main id="viewport"><div id="label">SYNTHETIC SCENE<br>実在の街・臨床評価用ではありません</div></main>
+  </div>
+  <script type="module" src="./procedural-city-demo.js"></script>
+</body>
+</html>
