@@ -8,6 +8,15 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.setPixelRatio(Math.min(1.5,window.devicePixelRatio||1));
 renderer.setSize(viewport.clientWidth,viewport.clientHeight);
 viewport.append(renderer.domElement);
+const renderCheck=document.getElementById('render-check');
+let shaderFailed=false;
+renderer.debug.onShaderError=(gl,program,vertexShader,fragmentShader)=>{
+  shaderFailed=true;
+  renderCheck.dataset.state='error';
+  renderCheck.textContent='Shader compile failed';
+  document.getElementById('error').textContent=
+    gl.getProgramInfoLog(program)||gl.getShaderInfoLog(vertexShader)||gl.getShaderInfoLog(fragmentShader)||'Unknown shader error';
+};
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0xa8c0cf);
 scene.fog=new THREE.Fog(0xa8c0cf,120,360);
@@ -130,6 +139,10 @@ function draw(now){
   });
   controls.update();
   renderer.render(scene,camera);
+  if(!shaderFailed&&renderer.info.programs?.length&&renderCheck.dataset.state==='pending'){
+    renderCheck.dataset.state='rendered';
+    renderCheck.textContent='WebGL描画中（この架空シーンの表示確認）';
+  }
 }
 try{apply();requestAnimationFrame(draw);}
 catch(error){document.getElementById('error').textContent=error.stack||String(error);}
