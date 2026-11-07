@@ -48,6 +48,11 @@
         <button id="road-tour" class="secondary" style="width:100%;margin-top:8px">OSM道路線に沿って移動</button>
         <label for="quality">画質</label>
         <select id="quality"><option value="light">Low（軽量）</option><option value="standard">Medium（標準）</option><option value="high">High（高画質）</option></select>
+        <label class="switch"><input id="procedural-city" type="checkbox">手続き生成の街並み（実験）</label>
+        <label for="procedural-time">街の時間帯（演出） <strong id="procedural-clock">14:00</strong></label>
+        <input id="procedural-time" type="range" min="5" max="23" step=".5" value="14">
+        <p id="procedural-diagnostics" class="fine" aria-live="polite">生成外壁：適用状況を確認しています。</p>
+        <p class="fine">LOD1の壁に推定の窓・外壁模様を描き、道路の目安線と昼夕夜の照明を切り替えます。公式LOD2写真や地図形状は変更しません。夜景は演出であり、実際の街灯・建物・道路標示の再現ではありません。Low画質を優先します。 <a href="./procedural-city-demo.html">架空データで単独デモを見る</a></p>
         <label class="switch"><input id="station-photo" type="checkbox">駅東口300mの公式写真付きLOD2を表示</label>
         <label for="station-style">駅前の建物の見た目</label>
         <select id="station-style"><option value="photo">公式写真</option><option value="sharp">公式写真を鮮明化（駅前全体）</option><option value="clean">シンプルな建物（推定）</option></select>
