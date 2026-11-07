@@ -23,3 +23,23 @@ jobs:
           node --check viewer/procedural-city-demo.js
       - name: Test procedural road geometry without city assets
         run: node --test tests/procedural-city.test.mjs
+      - name: Render synthetic demo with headless Chrome
+        shell: bash
+        run: |
+          CHROME=$(command -v google-chrome || command -v chromium || true)
+          if [ -z "$CHROME" ]; then echo "Chrome not found"; exit 1; fi
+          python -m http.server 8767 --bind 127.0.0.1 >/tmp/geoengine-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 2
+          timeout 35s "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --enable-unsafe-swiftshader --use-angle=swiftshader --virtual-time-budget=5000 --dump-dom http://127.0.0.1:8767/viewer/procedural-city-demo.html >/tmp/geoengine-browser.html 2>/tmp/geoengine-chrome.log || {
+            cat /tmp/geoengine-chrome.log | tail -30; exit 1;
+          }
+          if ! grep -q 'data-state="rendered"' /tmp/geoengine-browser.html; then
+            echo "Procedural demo did not report successful WebGL rendering"
+            grep -E 'render-check|id="error"' /tmp/geoengine-browser.html | tail -10 || true
+            tail -35 /tmp/geoengine-chrome.log
+            exit 1
+          fi
+          echo "Synthetic procedural demo rendered successfully in Chrome"
+
