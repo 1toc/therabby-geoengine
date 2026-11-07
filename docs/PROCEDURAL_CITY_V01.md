@@ -66,3 +66,21 @@ The normal 10-minute acceptance run is designed for the **baseline** renderer. W
 Evaluate precomputed PLATEAU road outline + OSM carriageway/sidewalk partitioning using real Fukushima assets, keeping inferred geometry separate. Then consider georeferenced street furniture, signal states and lightweight traffic models after TDS integration and regulatory validation.
 
 Inspired by the open-source architecture of Procedural Tokyo; **no claim of matching its visual scope**. Code MIT under Therabby repository; third-party geodata terms handled separately.
+
+## 2026-11-07 close-up regression and fix
+
+On a real Fukushima citywide LOD1 screenshot, walls remained featureless even near street-level. Code inspection identified a concrete mismatch risk in the original hook: it accepted *only* exactly `LOD1 walls / official shape` or `OSM fallback walls / estimated height`. The Blender export loops over many tiles and allocates new material datablocks with `bpy.data.materials.new()`. Blender may automatically suffix successive names, e.g. `.001` / `.002`. Those wall materials were ignored by the original exact-name predicate.
+
+Fixed by a pure, tested predicate supporting Blender-style numeric suffixes while strictly excluding roof materials and preserving official-vs-OSM separation. The citywide UI now displays `生成外壁：適用 N材質 / 検査 M材質` to distinguish an unmatched material from a shader/visualization failure. The synthetic WebGL smoke test also uses a deliberately suffixed wall material.
+
+### Local retest after updating the feature branch
+
+```powershell
+cd E:\GeoEngine-Procedural
+git pull --ff-only origin feature/procedural-city-v01
+python -m http.server 8791 --bind 127.0.0.1
+```
+
+Reload `http://127.0.0.1:8791/viewer/citywide-v1.html?procedural=1` with Ctrl+Shift+R; use Medium quality, station LOD2 off, and move to within ~20–50m of a wall. Inspect the **facade material counter** and do on/off comparisons at the same camera position. If the counter remains zero, capture the sample material names displayed for further investigation. If nonzero but no windows appear, investigate browser shader compilation, wall normals or camera/world-coordinate calculations next.
+
+The repository itself omits the actual Fukushima GLBs, so this change is code-level and synthetic-browser verified only until the real city tiles are retested.
