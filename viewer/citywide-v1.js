@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { projectFukushima } from './geoengine-citywide-api.js';
 import {buildStationRoadObject,buildStationGroundObject,stationGround,validateStationRoads} from './geoengine-station-roads-v02.js';
 import {stationStyleProfiles} from './station-style-profiles.js';
+import {ProceduralCity,createEstimatedMarkingMeshes} from './geoengine-procedural-city.js';
 import {findWalkCollision,findWalkInterior,walkSlide,insideWalkArea,walkElevationAllowed} from './geoengine-walk-collision.js';
 
 const $=id=>document.getElementById(id);
@@ -36,7 +37,7 @@ const camera=new THREE.PerspectiveCamera(55,viewport.clientWidth/viewport.client
 const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=.09;controls.minDistance=8;controls.maxDistance=5000;
 controls.maxPolarAngle=Math.PI*.52;
-scene.add(new THREE.HemisphereLight(0xf4f9ff,0x607f70,2.25));
+const hemisphere=new THREE.HemisphereLight(0xf4f9ff,0x607f70,2.25);scene.add(hemisphere);
 const sunlight=new THREE.DirectionalLight(0xffecd2,2.1);sunlight.position.set(-1200,2400,500);scene.add(sunlight);
 const loader=new GLTFLoader(), raycaster=new THREE.Raycaster(), rayDirection=new THREE.Vector3(0,-1,0);
 const manifests={},index=new Map(),active=new Map(),pending=new Map(),queue=[];
@@ -44,6 +45,11 @@ let desired=new Set(),inProgress=0,quality='light',viewMode='overview',pendingGr
   lastFrame=0,frameTimes=[],loadFailures=0,loadSuccess=0,unloads=0,measure=null,lastMeasurement=null,lastMeasurementUrl=null,
   photoEnabled=false,lastMoveAlign=0,stationRoadData=null,stationRoadMesh=null,stationGroundMesh=null,
   photoComparisonFrames=null,comparisonUrls=[],stationInspection=false;
+const proceduralCity=new ProceduralCity({scene,sunlight,hemisphere});
+const initialProcedural=new URLSearchParams(location.search).get('procedural')==='1';
+let proceduralEnabled=initialProcedural;
+proceduralCity.setQuality(quality);
+proceduralCity.setEnabled(proceduralEnabled);
 const moveKeys=new Set();
 let walking=false,walkYaw=0,walkPitch=0,walkDrag=null;
 const walkRay=new THREE.Raycaster(),walkDown=new THREE.Raycaster();
@@ -290,11 +296,16 @@ function buildRoadObject(tile){
   }
   const guides=new THREE.BufferGeometry();guides.setAttribute('position',new THREE.Float32BufferAttribute(guidePositions,3));
   const guideMesh=new THREE.Mesh(guides,new THREE.MeshBasicMaterial({color:0xe4e1ce,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
-  guideMesh.name='道路の目安線（推定・実際の区画線ではない）';guideMesh.userData.roadGuide=true;guideMesh.visible=$('road-guides').checked;root.add(guideMesh);
+  guideMesh.name='道路の目安線（推定・実際の区画線ではない）';guideMesh.userData.roadGuide=true;guideMesh.visible=$('road-guides').checked&&!proceduralEnabled;root.add(guideMesh);
   const lines=new THREE.BufferGeometry();lines.setAttribute('position',new THREE.Float32BufferAttribute(centerPoints,3));
   const centerline=new THREE.LineSegments(lines,new THREE.LineBasicMaterial({color:0xffbd59,depthTest:false}));
   centerline.name='OSM道路中心線';centerline.visible=$('road-centerline').checked;
   centerline.renderOrder=5;root.add(centerline);
+  // Markings use existing OSM and DEM data; the original road meshes stay untouched.
+  root.userData.geoProceduralRoadFactory=()=>createEstimatedMarkingMeshes(tile,groundAt,{
+    maxQuads:quality==='light'?700:quality==='standard'?1800:3000,
+  });
+  if(proceduralEnabled)proceduralCity.installRoadPaint(root);
   root.renderOrder=2;
   return {root,displayed,unknown,structures};
 }
@@ -329,7 +340,7 @@ function applyDebugDisplay(){
   for(const [key,item] of active){
     if(key.startsWith('road:'))item.root.traverse(object=>{
       if(object.isLineSegments)object.visible=$('road-centerline').checked;
-      if(object.userData.roadGuide)object.visible=$('road-guides').checked;
+      if(object.userData.roadGuide)object.visible=$('road-guides').checked&&!proceduralEnabled;
       if(object.userData.roadSurface){
         const material=object.material;
         material.map=$('road-surface').checked?material.userData.asphaltMap:null;
@@ -347,6 +358,23 @@ function applyDebugDisplay(){
   }
   $('lod-info').hidden=!$('building-lod').checked;
   $('height-info').hidden=!$('road-height').checked;
+}
+function applyProceduralClock(){
+  const hour=Number($('procedural-time').value);
+  $('procedural-clock').textContent=`${Math.floor(hour).toString().padStart(2,'0')}:${hour%1?'30':'00'}`;
+  proceduralCity.setTime(hour);
+}
+function updateProceduralMode(enabled){
+  proceduralEnabled=Boolean(enabled);
+  proceduralCity.setEnabled(proceduralEnabled);
+  for(const [key,item] of active){
+    if(key.startsWith('road:'))proceduralCity.toggleRoadPaint(item.root);
+    else if(proceduralEnabled&&key.startsWith('building:'))proceduralCity.installFacades(item.root,'building');
+    else if(proceduralEnabled&&key.startsWith('osmBuilding:'))proceduralCity.installFacades(item.root,'osmBuilding');
+    else if(proceduralEnabled&&key.startsWith('photo-')&&item.root.children[0])
+      proceduralCity.installFacades(item.root.children[0],'building');
+  }
+  applyDebugDisplay();
 }
 function applyPhotoSampling(texture,variant){
   const selected=$('photo-anisotropy').value;
@@ -420,6 +448,7 @@ async function readTile(key,record,signal){
       lod1=await loadPart(filtered);
       lod2=await loadPart(selected);
     }catch(error){dispose(lod1);dispose(lod2);throw error;}
+    if(proceduralEnabled)proceduralCity.installFacades(lod1,'building');
     lod2.traverse(object=>{
       if(object.isMesh){
         const previous=object.onBeforeRender;
@@ -457,6 +486,8 @@ async function readTile(key,record,signal){
   if(buffer.byteLength!==tile.byte_length)throw new Error(`${key} ファイル長が目録と一致しません`);
   const gltf=await loader.parseAsync(buffer,assetRoots[kind].href);
   const root=gltf.scene;
+  if(proceduralEnabled&&(kind==='building'||kind==='osmBuilding'))
+    proceduralCity.installFacades(root,kind);
   root.position.set(tile.tile_origin_east_m-origin.east,0,origin.north-tile.tile_origin_north_m);
   return {root,bytes:buffer.byteLength,buildings:tile.buildings??0,farCells:tile.cells??0};
 }
@@ -809,6 +840,7 @@ function saveMeasurement(reason='stopped'){
     target_duration_s:measure.target_s,automatic:measure.automatic,completion_reason:reason,
     width:renderer.domElement.width,height:renderer.domElement.height,pixel_ratio:renderer.getPixelRatio(),
     quality,view_mode:viewMode,station_lod2_enabled:photoEnabled,
+    procedural_city_enabled:proceduralEnabled,procedural_visual_hour:proceduralEnabled?proceduralCity.hour:null,
     station_lod2_buildings_loaded:[...active].reduce((sum,[key,item])=>sum+(key.startsWith('photo-')?item.photoBuildings:0),0),
     user_agent:navigator.userAgent,gpu:gpuInfo(),
     baseline_resolution_match:renderer.domElement.width===1280&&renderer.domElement.height===720,
@@ -826,7 +858,7 @@ function saveMeasurement(reason='stopped'){
     notes:'描画バッファは1280×720固定。GPU文字列だけでI-RIHA101本体を認証できないため、ホスト名は別途確認する。背面化はhidden_intervalsに記録。'};
   const validity={ten_minutes:data.target_duration_s===600&&duration>=600,
     completed:data.completion_reason==='completed',resolution:data.baseline_resolution_match&&data.pixel_ratio===1,
-    light_quality:data.quality==='light',foreground:data.hidden_intervals===0,
+    light_quality:data.quality==='light',procedural_visuals_off:!proceduralEnabled,foreground:data.hidden_intervals===0,
     unthrottled:!data.suspected_browser_throttling,
     road_tour:Number.isFinite(data.road_tour_distance_m)&&data.road_tour_distance_m>0&&data.road_tour_tile_crossings>0,
     no_tile_errors:data.load_failures_delta===0};
@@ -956,6 +988,7 @@ async function initialize(){
     const updateSharpness=()=>{stationPhotoSharpUniform.value=$('station-style').value==='sharp'&&quality!=='light'?Number($('station-sharpness').value):0;};
     $('quality').onchange=()=>{
       quality=$('quality').value;
+      proceduralCity.setQuality(quality);
       updateSharpness();
       renderer.setPixelRatio(quality==='light'?1:Math.min(devicePixelRatio,quality==='high'?2:1.5));
       const anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),quality==='high'?8:quality==='standard'?4:2);
@@ -965,6 +998,10 @@ async function initialize(){
       });
       schedule(true);
     };
+    $('procedural-city').checked=initialProcedural;
+    $('procedural-city').onchange=()=>updateProceduralMode($('procedural-city').checked);
+    $('procedural-time').oninput=applyProceduralClock;
+    applyProceduralClock();
     $('photo-detail').onchange=()=>schedule(true);
     $('station-style').onchange=()=>{stationStyleUniform.value=$('station-style').value==='clean'?1:0;updateSharpness();applyDebugDisplay();};
     $('station-sharpness').oninput=updateSharpness;
