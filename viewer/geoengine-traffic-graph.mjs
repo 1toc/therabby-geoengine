@@ -15,10 +15,10 @@ export function buildTrafficGraph(tiles, centerEast, centerNorth, radiusM=300) {
   if (!Array.isArray(tiles)) throw new TypeError('タイルは配列で渡してください');
   const segments=[], adjacency={vehicle:new Map(),pedestrian:new Map()}, seen=new Set();
   const counts={bad:0,far:0,duplicate:0,estimated_width:0};
-  function addArc(mode,from,to,a,b,edge,length) {
+  function addArc(mode,from,to,a,b,edge,length,groundFromTp=null,groundToTp=null) {
     const map=adjacency[mode];
     if (!map.has(from))map.set(from,[]);
-    map.get(from).push({mode,from,to,a,b,length,edgeId:edge.id,highway:edge.highway});
+    map.get(from).push({mode,from,to,a,b,length,edgeId:edge.id,highway:edge.highway,groundFromTp,groundToTp});
   }
   for (const tile of tiles) {
     if (!tile || tile.schema!=='therabby.geoengine.citywide-road-tile.v0.1'||
@@ -56,16 +56,18 @@ export function buildTrafficGraph(tiles, centerEast, centerNorth, radiusM=300) {
       const segment={id:edge.id,from:edge.from_node,to:edge.to_node,a,b,length:len,width_m:width,
         highway,kind:pedestrian?'footpath':VEHICLE_EXCLUDE.has(highway)?'other':'road',
         simulated_vehicle:vehicle,simulated_pedestrian:canWalk,
-        width_quality:edge.width_quality||'unknown',source_way_id:edge.source_way_id||null};
+        width_quality:edge.width_quality||'unknown',source_way_id:edge.source_way_id||null,
+        groundFromTp:Number.isFinite(edge.ground_height_from_tp_m)?edge.ground_height_from_tp_m:null,
+        groundToTp:Number.isFinite(edge.ground_height_to_tp_m)?edge.ground_height_to_tp_m:null};
       segments.push(segment);
       if(vehicle) {
         const ow=String(edge.oneway_osm_tag||'').toLowerCase();
-        if(!ONEWAY_REVERSE.has(ow))addArc('vehicle',edge.from_node,edge.to_node,a,b,edge,len);
-        if(!ONEWAY_FORWARD.has(ow))addArc('vehicle',edge.to_node,edge.from_node,b,a,edge,len);
+        if(!ONEWAY_REVERSE.has(ow))addArc('vehicle',edge.from_node,edge.to_node,a,b,edge,len,segment.groundFromTp,segment.groundToTp);
+        if(!ONEWAY_FORWARD.has(ow))addArc('vehicle',edge.to_node,edge.from_node,b,a,edge,len,segment.groundToTp,segment.groundFromTp);
       }
       if(canWalk){
-        addArc('pedestrian',edge.from_node,edge.to_node,a,b,edge,len);
-        addArc('pedestrian',edge.to_node,edge.from_node,b,a,edge,len);
+        addArc('pedestrian',edge.from_node,edge.to_node,a,b,edge,len,segment.groundFromTp,segment.groundToTp);
+        addArc('pedestrian',edge.to_node,edge.from_node,b,a,edge,len,segment.groundToTp,segment.groundFromTp);
       }
     }
   }
