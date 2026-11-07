@@ -21,6 +21,7 @@ jobs:
           node --check viewer/geoengine-procedural-rules.mjs
           node --check viewer/citywide-v1.js
           node --check viewer/procedural-city-demo.js
+          node --check viewer/geoengine-station-road-split.js
       - name: Test procedural road geometry without city assets
         run: node --test tests/procedural-city.test.mjs
       - name: Render synthetic demo with headless Chrome
@@ -42,4 +43,15 @@ jobs:
             exit 1
           fi
           echo "Synthetic procedural demo rendered successfully in Chrome"
-
+  station-road-split:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install isolated geometry builder dependency
+        run: python -m pip install 'shapely>=2.0,<3'
+      - name: Verify 100m synthetic partition and source guards
+        run: python -m unittest discover -s tests -p test_station_road_split.py -v
+      - name: Compile 100m builder
+        run: python -m py_compile scripts/build_station_road_split.py
