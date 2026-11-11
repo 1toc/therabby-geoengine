@@ -350,6 +350,7 @@ function applyDebugDisplay(){
   }
   $('lod-info').hidden=!$('building-lod').checked;
   $('height-info').hidden=!$('road-height').checked;
+  pixelExplorer?.syncPhotos();
 }
 function applyPhotoSampling(texture,variant){
   const selected=$('photo-anisotropy').value;
@@ -479,6 +480,7 @@ function pump(){
         }
       }
       scene.add(item.root);active.set(key,item);loadSuccess++;
+       if(record.kind==='photo')pixelExplorer?.syncPhotos();
       if(record.kind==='road')applyDebugDisplay();
       if(record.kind==='terrain')alignGround();
       if(record.kind==='road'&&pendingGround)placeGroundCamera();
@@ -1018,7 +1020,8 @@ async function initialize(){
     new ResizeObserver(resizeRender).observe(viewport);
     pixelExplorer=createPixelExplorer({scene,renderer,camera,controls,active,origin,
       onBeforeDrive:()=>{stopWalking();stopTour();moveKeys.clear();},
-      onDriveChange:driving=>{stationInspection=driving;if(driving)viewMode='ground';}});
+      onDriveChange:driving=>{stationInspection=driving;if(driving)viewMode='ground';},
+      photoVisible:()=>$('building-texture').checked});
     pixelExplorer.bindUI({
       pixel:$('pixel-mode'),iso:$('pixel-iso'),normal:$('pixel-normal'),
       scale:$('pixel-scale'),zoom:$('pixel-zoom'),
