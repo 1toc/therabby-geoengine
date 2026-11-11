@@ -4,7 +4,7 @@ import {closestDriveRoad, advanceVehicle} from './geoengine-pixel-explorer-core.
 // Pixel Explorer: stylized renderer + orthographic city view + experimental road-constrained car.
 // Keep source PLATEAU textures, geometry and geospatial coordinates unchanged.
 export function createPixelExplorer({scene,renderer,camera,controls,active,origin,
-  onBeforeDrive=()=>{},onDriveChange=()=>{},onMessage=()=>{}}) {
+  onBeforeDrive=()=>{},onDriveChange=()=>{},onMessage=()=>{},photoVisible=()=>true}) {
   const target = new THREE.WebGLRenderTarget(2,2,{
     minFilter:THREE.NearestFilter, magFilter:THREE.NearestFilter,
     depthBuffer:true, stencilBuffer:false
@@ -103,7 +103,7 @@ export function createPixelExplorer({scene,renderer,camera,controls,active,origi
       return result;
     }catch(error){console.warn('ピクセル写真の処理に失敗:',error);return null;}
   }
-  function syncPhotos(photosVisible=true){
+  function syncPhotos(photosVisible=photoVisible()){
     for(const [key,item] of active){
       if(!key.startsWith('photo-'))continue;
       item.root.traverse(object=>{
