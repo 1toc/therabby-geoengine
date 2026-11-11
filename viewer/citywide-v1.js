@@ -1021,7 +1021,7 @@ async function initialize(){
     pixelExplorer=createPixelExplorer({scene,renderer,camera,controls,active,origin,
       onBeforeDrive:()=>{stopWalking();stopTour();moveKeys.clear();},
       onDriveChange:driving=>{stationInspection=driving;if(driving)viewMode='ground';},
-      photoVisible:()=>$('building-texture').checked});
+      photoVisible:()=>$('building-texture').checked,getWalking:()=>walking});
     pixelExplorer.bindUI({
       pixel:$('pixel-mode'),iso:$('pixel-iso'),normal:$('pixel-normal'),
       scale:$('pixel-scale'),zoom:$('pixel-zoom'),
