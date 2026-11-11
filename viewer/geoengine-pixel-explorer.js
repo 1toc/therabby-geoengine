@@ -65,9 +65,64 @@ export function createPixelExplorer({scene,renderer,camera,controls,active,origi
     renderer.setRenderTarget(null);
     renderer.render(outputScene,outputCamera);
   }
+  // Stylize each source facade photo independently while preserving its UV transform.
+  // This is a faithful, non-generative starting point, not a replacement for authored pixel art.
+  function pixelizeTexture(original){
+    const image=original.image;
+    if(!image?.width||!image?.height)return null;
+    try{
+      const ratio=Math.min(1,512/Math.max(image.width,image.height));
+      const width=Math.max(1,Math.round(image.width*ratio));
+      const height=Math.max(1,Math.round(image.height*ratio));
+      const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});
+      ctx.drawImage(image,0,0,width,height);
+      const pixels=ctx.getImageData(0,0,width,height),data=pixels.data;
+      const gray=new Uint8Array(width*height);
+      for(let i=0,j=0;i<data.length;i+=4,j++)
+        gray[j]=(77*data[i]+150*data[i+1]+29*data[i+2])>>8;
+      for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+        const p=y*width+x,i=p*4;
+        const edge=Math.max(Math.abs(gray[p]-gray[Math.min(x+1,width-1)+y*width]),
+          Math.abs(gray[p]-gray[x+Math.min(y+1,height-1)*width]));
+        const ink=edge>44?0.82:1;
+        for(let k=0;k<3;k++)data[i+k]=Math.min(255,Math.round(data[i+k]/17)*17*ink);
+      }
+      ctx.putImageData(pixels,0,0);
+      const result=new THREE.CanvasTexture(canvas);
+      result.name='pixel-art-derivative-of-'+(original.name||'PLATEAU-photo');
+      result.colorSpace=original.colorSpace;
+      result.flipY=original.flipY;
+      result.wrapS=original.wrapS;result.wrapT=original.wrapT;
+      result.offset.copy(original.offset);result.repeat.copy(original.repeat);
+      result.center.copy(original.center);result.rotation=original.rotation;
+      result.magFilter=THREE.NearestFilter;
+      result.minFilter=THREE.NearestMipmapNearestFilter;
+      result.anisotropy=1;
+      result.needsUpdate=true;
+      return result;
+    }catch(error){console.warn('ピクセル写真の処理に失敗:',error);return null;}
+  }
+  function syncPhotos(photosVisible=true){
+    for(const [key,item] of active){
+      if(!key.startsWith('photo-'))continue;
+      item.root.traverse(object=>{
+        for(const mat of Array.isArray(object.material)?object.material:object.material?[object.material]:[]){
+          const original=mat.userData.officialPhotoMap;
+          if(!original)continue;
+          if(pixelEnabled&&photosVisible&&!mat.userData.pixelArtPhotoMap)
+            mat.userData.pixelArtPhotoMap=pixelizeTexture(original);
+          const next=photosVisible?(pixelEnabled&&mat.userData.pixelArtPhotoMap||
+            original):null;
+          if(mat.map!==next){mat.map=next;mat.needsUpdate=true;}
+        }
+      });
+    }
+  }
   function setPixel(enabled){
     pixelEnabled=Boolean(enabled);
     if(widget.pixel)widget.pixel.checked=pixelEnabled;
+    syncPhotos();
   }
   function setIsometric(enabled){
     isoEnabled=Boolean(enabled);
@@ -164,7 +219,7 @@ export function createPixelExplorer({scene,renderer,camera,controls,active,origi
     zoom.addEventListener('input',()=>{isoSpan=Number(zoom.value)||240;});
     drive.addEventListener('click',()=>vehicle?stopDriving():startDriving());
   }
-  return {render,update,bindUI,setPixel,setIsometric,startDriving,stopDriving,
+  return {render,update,bindUI,setPixel,setIsometric,startDriving,stopDriving,syncPhotos,
     get driving(){return Boolean(vehicle);},
     dispose(){stopDriving();target.dispose();quad.geometry.dispose();material.dispose();}};
 }
