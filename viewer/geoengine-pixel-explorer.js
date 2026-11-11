@@ -4,7 +4,7 @@ import {closestDriveRoad, advanceVehicle} from './geoengine-pixel-explorer-core.
 // Pixel Explorer: stylized renderer + orthographic city view + experimental road-constrained car.
 // Keep source PLATEAU textures, geometry and geospatial coordinates unchanged.
 export function createPixelExplorer({scene,renderer,camera,controls,active,origin,
-  onBeforeDrive=()=>{},onDriveChange=()=>{},onMessage=()=>{},photoVisible=()=>true}) {
+  onBeforeDrive=()=>{},onDriveChange=()=>{},onMessage=()=>{},photoVisible=()=>true,getWalking=()=>false}) {
   const target = new THREE.WebGLRenderTarget(2,2,{
     minFilter:THREE.NearestFilter, magFilter:THREE.NearestFilter,
     depthBuffer:true, stencilBuffer:false
@@ -41,9 +41,10 @@ export function createPixelExplorer({scene,renderer,camera,controls,active,origi
   let pixelEnabled=false,isoEnabled=false,pixelScale=2,isoSpan=240,vehicle=null,carState=null;
   let lastStatus=0,wasOutside=false,widget={};
   const tilt=new THREE.Vector3(-1,1.14,1).normalize();
+  const avatar=buildWalker();avatar.visible=false;scene.add(avatar);
 
   function placeIso() {
-    const focus=carState ? new THREE.Vector3(carState.x,carState.y+1,carState.z) : controls.target;
+    const focus=carState ? new THREE.Vector3(carState.x,carState.y+1,carState.z) : avatar.visible ? avatar.position.clone().add(new THREE.Vector3(0,1.3,0)) : controls.target;
     const w=Math.max(1,renderer.domElement.width),h=Math.max(1,renderer.domElement.height);
     const aspect=w/h,half=isoSpan/2;
     ortho.left=-half*aspect;ortho.right=half*aspect;
@@ -135,6 +136,15 @@ export function createPixelExplorer({scene,renderer,camera,controls,active,origi
     const mesh=new THREE.Mesh(shape,new THREE.MeshLambertMaterial({color,flatShading:true}));
     mesh.position.set(x,y,z);parent.add(mesh);return mesh;
   }
+  function buildWalker(){
+    const root=new THREE.Group();
+    bodyPart(root,new THREE.BoxGeometry(0.63,0.74,0.33),0x487aa1,0,1.05,0);
+    bodyPart(root,new THREE.BoxGeometry(0.49,0.51,0.48),0xf0c8a3,0,1.68,0);
+    bodyPart(root,new THREE.BoxGeometry(0.54,0.16,0.53),0x30353c,0,2.0,0);
+    for(const x of [-0.19,0.19])
+      bodyPart(root,new THREE.BoxGeometry(0.24,0.53,0.29),0x293b56,x,0.42,0);
+    return root;
+  }
   function buildCar(){
     const root=new THREE.Group();
     bodyPart(root,new THREE.BoxGeometry(1.85,0.65,3.7),0xb94f46,0,0.67,0);
@@ -190,6 +200,8 @@ export function createPixelExplorer({scene,renderer,camera,controls,active,origi
     driveStatus('簡易運転を終了しました。道路位置・車線・走行可否は保証されません。');
   }
   function update(dt,keys,now=performance.now()){
+    avatar.visible=isoEnabled && !vehicle && getWalking();
+    if(avatar.visible)avatar.position.set(camera.position.x,camera.position.y-1.6,camera.position.z);
     if(!vehicle||!carState)return;
     const proposed=advanceVehicle(carState,keys,dt);
     const road=closestDriveRoad(active,origin,proposed.x,proposed.z,16);
@@ -221,5 +233,7 @@ export function createPixelExplorer({scene,renderer,camera,controls,active,origi
   }
   return {render,update,bindUI,setPixel,setIsometric,startDriving,stopDriving,syncPhotos,
     get driving(){return Boolean(vehicle);},
-    dispose(){stopDriving();target.dispose();quad.geometry.dispose();material.dispose();}};
+    dispose(){stopDriving();scene.remove(avatar);
+      avatar.traverse(node=>{node.geometry?.dispose();node.material?.dispose();});
+      target.dispose();quad.geometry.dispose();material.dispose();}};
 }
