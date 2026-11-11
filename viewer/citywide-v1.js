@@ -5,6 +5,7 @@ import { projectFukushima } from './geoengine-citywide-api.js';
 import {buildStationRoadObject,buildStationGroundObject,stationGround,validateStationRoads} from './geoengine-station-roads-v02.js';
 import {stationStyleProfiles} from './station-style-profiles.js';
 import {findWalkCollision,findWalkInterior,walkSlide,insideWalkArea,walkElevationAllowed} from './geoengine-walk-collision.js';
+import {createPixelExplorer} from './geoengine-pixel-explorer.js';
 
 const $=id=>document.getElementById(id);
 const benchmarkMode=new URLSearchParams(location.search).get('benchmark');
@@ -14,6 +15,8 @@ const photoStreamSetting=new URLSearchParams(location.search).get('photo_stream'
 const photoStreamMode=photoStreamSetting==='1'||photoStreamSetting==='all';
 const photoStreamFull=photoStreamSetting==='all';
 let photoPilot=null;
+let pixelExplorer=null;
+const initialPixel=new URLSearchParams(location.search).get('pixel')==='1';
 const autoBenchmark=benchmarkMode==='1'||benchmarkMode==='smoke';
 let autoBenchmarkStarted=false;
 const origin={east:55000,north:195000};
@@ -544,6 +547,7 @@ function eligibleRoad(edge){
 }
 function stopTour(){tour=null;$('road-tour').textContent='OSM道路線に沿って移動';}
 function startTour(){
+  pixelExplorer?.stopDriving();pixelExplorer?.setIsometric(false);
   let best=null;const east=origin.east+controls.target.x,north=origin.north-controls.target.z;
   for(const [key,item] of active){
     if(!key.startsWith('road:'))continue;
@@ -641,6 +645,7 @@ function placeGroundCamera(){
   return true;
 }
 function teleport(east,north){
+  pixelExplorer?.stopDriving();
   stopWalking();
   stationInspection=false;
   if(!Number.isFinite(east)||!Number.isFinite(north))return;
@@ -652,6 +657,7 @@ function teleport(east,north){
   controls.update();schedule(true);alignGround();
 }
 function setView(mode){
+  pixelExplorer?.stopDriving();pixelExplorer?.setIsometric(false);
   stopWalking();
   stationInspection=false;
   stopTour();
@@ -772,6 +778,7 @@ function resizeRender(){
   camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);
 }
 function beginMeasurement(automatic=false){
+  pixelExplorer?.stopDriving();pixelExplorer?.setIsometric(false);
   if(measure)return true;
   stopWalking();stationPhotoSharpUniform.value=0;
   quality='light';$('quality').value='light';renderer.setPixelRatio(1);
@@ -890,7 +897,7 @@ function animate(now){
   if(dt>0&&!document.hidden){frameTimes.push(dt);if(frameTimes.length>300)frameTimes.shift();
     if(measure)measure.frames.push(dt);
     if(photoComparisonFrames)photoComparisonFrames.push(dt);}
-  if(moveKeys.size&&!measure){
+  if(moveKeys.size&&!measure&&!pixelExplorer?.driving){
     if(tour)stopTour();
     const forward=new THREE.Vector3().subVectors(controls.target,camera.position);forward.y=0;forward.normalize();
     const right=new THREE.Vector3(-forward.z,0,forward.x);
@@ -904,14 +911,18 @@ function animate(now){
         if(now-lastMoveAlign>350){lastMoveAlign=now;alignGround();}}
     }
   }
-  advanceTour(dt/1000);if(!walking)controls.update();schedule();photoPilot?.update(now);renderer.render(scene,camera);updateStatus(now);
+  pixelExplorer?.update(Math.min(dt/1000,0.05),moveKeys,now);
+  advanceTour(dt/1000);if(!walking&&!pixelExplorer?.driving)controls.update();
+  schedule();photoPilot?.update(now);
+  if(pixelExplorer)pixelExplorer.render(Boolean(measure));else renderer.render(scene,camera);
+  updateStatus(now);
 }
 async function initialize(){
   try{
     await Promise.all(['building','osmBuilding','far','terrain','road'].map(fetchManifest));
     try{await fetchStationRoads();}
     catch(error){console.warn('駅東口のPLATEAU道路外形を読み込めません:',error);}
-    if(initialStationPhoto||photoPilotMode||photoStreamMode){
+    if(initialStationPhoto||photoPilotMode||photoStreamMode||initialPixel){
       try{await fetchPhotoOverlay();$('station-photo').checked=true;photoEnabled=true;if(stationGroundMesh)stationGroundMesh.visible=true;}
       catch(error){console.warn(error);$('station-photo').parentElement.title=error.message;}
     }
@@ -990,6 +1001,10 @@ async function initialize(){
     });
     addEventListener('keydown',e=>{
       if(e.target instanceof HTMLInputElement||e.target instanceof HTMLSelectElement)return;
+      if(pixelExplorer?.driving&&e.key==='Escape'){pixelExplorer.stopDriving();moveKeys.clear();return;}
+      if(pixelExplorer?.driving&&['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())){
+        e.preventDefault();moveKeys.add(e.key.toLowerCase());return;
+      }
       if(walking&&e.key==='Shift'){moveKeys.add('shift');return;}
       if(['w','a','s','d'].includes(e.key.toLowerCase())){e.preventDefault();moveKeys.add(e.key.toLowerCase());if(e.shiftKey)moveKeys.add('shift');return;}
       if(walking)return;
@@ -1001,6 +1016,13 @@ async function initialize(){
     addEventListener('keyup',e=>{moveKeys.delete(e.key.toLowerCase());if(e.key==='Shift')moveKeys.delete('shift');});
     addEventListener('blur',()=>moveKeys.clear());
     new ResizeObserver(resizeRender).observe(viewport);
+    pixelExplorer=createPixelExplorer({scene,renderer,camera,controls,active,origin,
+      onBeforeDrive:()=>{stopWalking();stopTour();moveKeys.clear();},
+      onDriveChange:driving=>{stationInspection=driving;if(driving)viewMode='ground';}});
+    pixelExplorer.bindUI({
+      pixel:$('pixel-mode'),iso:$('pixel-iso'),normal:$('pixel-normal'),
+      scale:$('pixel-scale'),zoom:$('pixel-zoom'),
+      drive:$('pixel-drive'),status:$('pixel-drive-status'),initialPixel});
     teleport(...projectFukushima(...(photoEnabled?[manifests.photo.area.center_lat,manifests.photo.area.center_lon]:presets.station)));
     if(photoPilotMode||photoStreamMode){
       $('photo-detail').value='low';$('photo-detail').disabled=true;$('quality').disabled=!photoStreamFull;$('compare-photo').disabled=!photoStreamMode||photoStreamFull;
