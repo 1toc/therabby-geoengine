@@ -1,0 +1,28 @@
+name: Pixel Explorer checks
+on:
+  push:
+    branches: [feature/pixel-explorer-v01]
+  pull_request:
+    paths:
+      - "viewer/citywide-v1.js"
+      - "viewer/citywide-v1.html"
+      - "viewer/geoengine-pixel-explorer*"
+      - "tests/pixel-explorer-core.test.mjs"
+      - ".github/workflows/pixel-explorer-checks.yml"
+jobs:
+  source-and-kinematics:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Parse browser ES modules
+        run: |
+          node --check viewer/citywide-v1.js
+          node --check viewer/geoengine-pixel-explorer.js
+          node --check viewer/geoengine-pixel-explorer-core.mjs
+      - name: Test road selection and vehicle movement
+        run: node --test tests/pixel-explorer-core.test.mjs

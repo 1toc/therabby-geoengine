@@ -73,6 +73,21 @@
         <p id="height-info" class="fine" hidden>駅前のPLATEAU外形は表示地形 +0.08m、OSM概略道路面は +0.12m（表示上の重なり防止）。実路面高は未取得です。</p>
         <p class="fine">ドラッグで回転、ホイールで拡大、右ドラッグで移動。WASDで視線方向へ移動、矢印キーで地点を150m移動します。道路追従は表示試験であり、合法走行の案内ではありません。</p>
       </section>
+      <section id="pixel-explorer">
+        <h2>PIXEL EXPLORER / 試作 v0.1</h2>
+        <label class="switch"><input id="pixel-mode" type="checkbox">高密度ピクセルアートを有効にする</label>
+        <div class="row" style="margin-top:9px">
+          <button id="pixel-iso" type="button" class="secondary" aria-pressed="false">アイソメ俯瞰</button>
+          <button id="pixel-normal" type="button" aria-pressed="true">通常視点</button>
+        </div>
+        <label for="pixel-scale">ドットの大きさ</label>
+        <select id="pixel-scale"><option value="2">細かい（2px）</option><option value="3">標準（3px）</option><option value="4">粗い（4px）</option></select>
+        <label for="pixel-zoom">アイソメ視点の表示幅</label>
+        <input id="pixel-zoom" type="range" min="60" max="650" step="10" value="240">
+        <button id="pixel-drive" class="secondary" type="button" style="width:100%;margin-top:8px">車を運転する</button>
+        <p class="fine" id="pixel-drive-status" role="status">W/S：加速・後退、A/D：ハンドル、Space：ブレーキ。駅前周辺の道路読込後に利用可能です。</p>
+        <p class="fine">PLATEAUの建物と公式写真を描画処理でドット絵風にします。手描きの高密度テクスチャ自動生成ではありません。運転はOSM中心線と推定幅による試験機能で、車線・標識・合法走行を再現しません。ベンチマーク中は通常描画を使います。</p>
+      </section>
       <section>
         <h2>読み込み・性能</h2>
         <div id="status" role="status">データ目録を読み込み中…</div>
